@@ -273,7 +273,14 @@ struct FileCallbackInfo
 
 		for (auto& it : lineData)
 		{
-			ofs << "FILE: " << it.first << std::endl;
+            // Replace by relative path if source path is fully include inside
+            std::string fileName = it.first;
+            if(RuntimeOptions::Instance().Relative && fileName.find(RuntimeOptions::Instance().SourcePath()) != std::string::npos)
+            {
+                fileName = std::string("./") + fileName.substr(RuntimeOptions::Instance().SourcePath().size());
+            }
+
+			ofs << "FILE: " << fileName << std::endl;
 			auto ptr = it.second.get();
 
 			std::string result;

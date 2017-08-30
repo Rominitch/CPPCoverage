@@ -8,7 +8,8 @@ private:
 	RuntimeOptions() :
 		Quiet(false),
 		UseStaticCodeAnalysis(false),
-		ExportFormat(Native)
+		ExportFormat(Native),
+        Relative(false)
 	{}
 
 	std::string sourcePath;
@@ -39,6 +40,7 @@ public:
 	std::string CodePath;
 	std::string Executable;
 	std::string ExecutableArguments;
+    bool        Relative;
 
 	std::string SourcePath()
 	{
