@@ -15,6 +15,10 @@
 #include <Windows.h>
 #include <ctime>
 
+// C++ 17
+#include <filesystem>
+#define FILESYSTEM std::experimental::filesystem
+
 struct FileCallbackInfo
 {
 	FileCallbackInfo(const std::string& filename) :
@@ -266,6 +270,45 @@ struct FileCallbackInfo
 		ofs << "</coverage>" << std::endl;
 	}
 
+    FILESYSTEM::path relativePath(const FILESYSTEM::path &path, const FILESYSTEM::path &relative_to)
+    {
+        // create absolute paths
+        FILESYSTEM::path p = FILESYSTEM::absolute(path);
+        FILESYSTEM::path r = FILESYSTEM::absolute(relative_to);
+
+        // if root paths are different, return absolute path
+        if(p.root_path() != r.root_path())
+            return p;
+
+        // initialize relative path
+        FILESYSTEM::path result;
+
+        // find out where the two paths diverge
+        FILESYSTEM::path::const_iterator itr_path = p.begin();
+        FILESYSTEM::path::const_iterator itr_relative_to = r.begin();
+        while(*itr_path == *itr_relative_to && itr_path != p.end() && itr_relative_to != r.end()) {
+            ++itr_path;
+            ++itr_relative_to;
+        }
+
+        // add "../" for each remaining token in relative_to
+        if(itr_relative_to != r.end()) {
+            ++itr_relative_to;
+            while(itr_relative_to != r.end()) {
+                result /= "..";
+                ++itr_relative_to;
+            }
+        }
+
+        // add remaining path
+        while(itr_path != p.end()) {
+            result /= *itr_path;
+            ++itr_path;
+        }
+
+        return result;
+    }
+
 	void WriteNative(const std::string& filename, std::unordered_map<std::string, std::unique_ptr<std::vector<ProfileInfo>>>& mergedProfileInfo)
 	{
 		std::string reportFilename = filename;
@@ -273,11 +316,14 @@ struct FileCallbackInfo
 
 		for (auto& it : lineData)
 		{
-            // Replace by relative path if source path is fully include inside
+            // Replace by relative path if code path is fully include inside
             std::string fileName = it.first;
-            if(RuntimeOptions::Instance().Relative && fileName.find(RuntimeOptions::Instance().SourcePath()) != std::string::npos)
+            std::string sourceLower = RuntimeOptions::Instance().CodePath;
+            std::transform(sourceLower.begin(), sourceLower.end(), sourceLower.begin(), ::tolower);
+
+            if(RuntimeOptions::Instance().Relative && fileName.find(sourceLower) != std::string::npos)
             {
-                fileName = std::string("./") + fileName.substr(RuntimeOptions::Instance().SourcePath().size());
+                fileName = relativePath(fileName, sourceLower).string();
             }
 
 			ofs << "FILE: " << fileName << std::endl;

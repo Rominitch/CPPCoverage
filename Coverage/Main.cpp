@@ -15,10 +15,10 @@ void ShowHelp()
 	std::cout << "  -quiet:        suppress output information from coverage tool" << std::endl;
 	std::cout << "  -format [fmt]: specify 'native' for native coverage format or 'cobertura' for cobertura XML" << std::endl;
 	std::cout << "  -o [name]:     write output information to the given filename" << std::endl;
-	std::cout << "  -p [name]:     assume source code can be found in the given path name" << std::endl;
+	std::cout << "  -p [name]:     assume source code can be found in the given path name (or $(SolutionDir))" << std::endl;
     std::cout << "  -w [name]:     Working directory where we execute the given executable filename" << std::endl;
     std::cout << "  -m [name]:     Merge current output to given path name or copy output if not existing" << std::endl;
-    std::cout << "  -r       :     Replace filepath into coverage by relative path if path starts by -p file path. Useful when coverage comes from build server." << std::endl;
+    std::cout << "  -r       :     Replace filepath into coverage by relative path based to -p file path. Useful when coverage comes from build server." << std::endl;
 	std::cout << "  -- [name]:     run coverage on the given executable filename" << std::endl;
     std::cout << "Return code:" << std::endl;
     std::cout << "  0:             Success run" << std::endl;
