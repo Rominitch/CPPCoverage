@@ -91,7 +91,7 @@ namespace NubiloSoft.CoverageExt.Native
             {
                 try
                 {
-                    report = new Native.NativeData(filename);
+                    report = new Native.NativeData(filename, dte, output);
                 }
                 catch (Exception e)
                 {

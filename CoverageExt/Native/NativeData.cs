@@ -1,10 +1,13 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using NubiloSoft.CoverageExt.Data;
+using EnvDTE;
+using Microsoft.VisualStudio.VCProjectEngine;
 
 namespace NubiloSoft.CoverageExt.Native
 {
@@ -45,7 +48,7 @@ namespace NubiloSoft.CoverageExt.Native
             }
         }
 
-        public NativeData(string filename)
+        public NativeData(string filename, DTE dte, OutputWindow output)
         {
             // Get file date (for modified checks)
             FileDate = new System.IO.FileInfo(filename).LastWriteTimeUtc;
@@ -59,6 +62,17 @@ namespace NubiloSoft.CoverageExt.Native
                     if (name.StartsWith("FILE: "))
                     {
                         string currentFile = name.Substring("FILE: ".Length);
+                        // If relative, we add solutionDir to relative directory.
+                        if (!System.IO.Path.IsPathRooted(currentFile))
+                        {
+                            // Here: we can add a list of ordered registered folders and try to find file inside.
+                            string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
+                            currentFile = System.IO.Path.Combine(solutionDir, currentFile);
+
+                            if(!System.IO.File.Exists(currentFile))
+                                output.WriteLine("Impossible to find into solution: {0}", currentFile);
+                        }
+
                         string cov = sr.ReadLine();
 
                         if (cov.StartsWith("RES: "))
