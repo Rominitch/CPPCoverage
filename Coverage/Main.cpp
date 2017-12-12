@@ -19,6 +19,7 @@ void ShowHelp()
     std::cout << "  -w [name]:     Working directory where we execute the given executable filename" << std::endl;
     std::cout << "  -m [name]:     Merge current output to given path name or copy output if not existing" << std::endl;
     std::cout << "  -r       :     Replace filepath into coverage by relative path based to -p file path. Useful when coverage comes from build server." << std::endl;
+    std::cout << "  -x [name]:     Exclude all files which contains following word (ex: Program Files, C:\\TEST)." << std::endl;
 	std::cout << "  -- [name]:     run coverage on the given executable filename" << std::endl;
     std::cout << "Return code:" << std::endl;
     std::cout << "  0:             Success run" << std::endl;
@@ -85,6 +86,17 @@ void ParseCommandLine(int argc, const char **argv)
 			std::string t(argv[i]);
 			opts.OutputFile = t;
 		}
+        else if(s == "-x")
+        {
+            ++i;
+            if(i == argc)
+            {
+                throw std::exception("Unexpected end of parameters. Expected code path name.");
+            }
+
+            std::string t(argv[i]);
+            opts.Exclude = t;
+        }
 		else if (s == "-p")
 		{
 			++i;

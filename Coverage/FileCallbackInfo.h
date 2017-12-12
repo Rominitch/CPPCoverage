@@ -321,6 +321,11 @@ struct FileCallbackInfo
             std::string sourceLower = RuntimeOptions::Instance().CodePath;
             std::transform(sourceLower.begin(), sourceLower.end(), sourceLower.begin(), ::tolower);
 
+            if(!RuntimeOptions::Instance().Exclude.empty() && fileName.find(RuntimeOptions::Instance().Exclude) != std::string::npos)
+            {
+                continue;
+            }
+
             if(RuntimeOptions::Instance().Relative && fileName.find(sourceLower) != std::string::npos)
             {
                 fileName = relativePath(fileName, sourceLower).string();

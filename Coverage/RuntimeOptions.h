@@ -40,6 +40,7 @@ public:
 	std::string CodePath;
 	std::string Executable;
 	std::string ExecutableArguments;
+    std::string Exclude;
     bool        Relative;
 
 	std::string SourcePath()
