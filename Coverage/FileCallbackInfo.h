@@ -25,7 +25,7 @@ struct FileCallbackInfo
 		filename(filename)
 	{
 		auto& opts = RuntimeOptions::Instance();
-		if (opts.CodePath.size() != 0)
+		if (opts.CodePath.size() == 0)
 		{
 			auto idx = filename.find("x64");
 			if (idx == std::string::npos)
@@ -241,7 +241,7 @@ struct FileCallbackInfo
 
 			double lineRate = covered / total;
 
-			ofs << "<class name=\"" << name << " filename=\"" << it.first.substr(2) << "\" line-rate=\"" << lineRate << "\">" << std::endl;
+			ofs << "<class name=\"" << name << "\" filename=\"" << it.first.substr(2) << "\" line-rate=\"" << lineRate << "\">" << std::endl;
 			ofs << "<lines>" << std::endl;
 
 			for (size_t i = 0; i < ptr->numberLines; ++i)
