@@ -8,7 +8,8 @@ private:
 	RuntimeOptions() :
 		Quiet(false),
 		UseStaticCodeAnalysis(false),
-		ExportFormat(Native)
+		ExportFormat(Native),
+        Relative(false)
 	{}
 
 	std::string sourcePath;
@@ -39,12 +40,14 @@ public:
 	std::string CodePath;
 	std::string Executable;
 	std::string ExecutableArguments;
+    std::string Exclude;
+    bool        Relative;
 
 	std::string SourcePath()
 	{
 		if (sourcePath.empty())
 		{
-			if (CodePath.size() != 0)
+			if (!CodePath.empty())
 			{
 				auto idx = CodePath.find("x64");
 				if (idx == std::string::npos)

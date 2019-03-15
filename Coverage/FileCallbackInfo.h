@@ -15,13 +15,17 @@
 #include <Windows.h>
 #include <ctime>
 
+// C++ 17
+#include <filesystem>
+#define FILESYSTEM std::experimental::filesystem
+
 struct FileCallbackInfo
 {
 	FileCallbackInfo(const std::string& filename) :
 		filename(filename)
 	{
 		auto& opts = RuntimeOptions::Instance();
-		if (opts.CodePath.size() != 0)
+		if (opts.CodePath.size() == 0)
 		{
 			auto idx = filename.find("x64");
 			if (idx == std::string::npos)
@@ -237,7 +241,7 @@ struct FileCallbackInfo
 
 			double lineRate = covered / total;
 
-			ofs << "<class name=\"" << name << " filename=\"" << it.first.substr(2) << "\" line-rate=\"" << lineRate << "\">" << std::endl;
+			ofs << "<class name=\"" << name << "\" filename=\"" << it.first.substr(2) << "\" line-rate=\"" << lineRate << "\">" << std::endl;
 			ofs << "<lines>" << std::endl;
 
 			for (size_t i = 0; i < ptr->numberLines; ++i)
@@ -266,6 +270,45 @@ struct FileCallbackInfo
 		ofs << "</coverage>" << std::endl;
 	}
 
+    FILESYSTEM::path relativePath(const FILESYSTEM::path &path, const FILESYSTEM::path &relative_to)
+    {
+        // create absolute paths
+        FILESYSTEM::path p = FILESYSTEM::absolute(path);
+        FILESYSTEM::path r = FILESYSTEM::absolute(relative_to);
+
+        // if root paths are different, return absolute path
+        if(p.root_path() != r.root_path())
+            return p;
+
+        // initialize relative path
+        FILESYSTEM::path result;
+
+        // find out where the two paths diverge
+        FILESYSTEM::path::const_iterator itr_path = p.begin();
+        FILESYSTEM::path::const_iterator itr_relative_to = r.begin();
+        while(*itr_path == *itr_relative_to && itr_path != p.end() && itr_relative_to != r.end()) {
+            ++itr_path;
+            ++itr_relative_to;
+        }
+
+        // add "../" for each remaining token in relative_to
+        if(itr_relative_to != r.end()) {
+            ++itr_relative_to;
+            while(itr_relative_to != r.end()) {
+                result /= "..";
+                ++itr_relative_to;
+            }
+        }
+
+        // add remaining path
+        while(itr_path != p.end()) {
+            result /= *itr_path;
+            ++itr_path;
+        }
+
+        return result;
+    }
+
 	void WriteNative(const std::string& filename, std::unordered_map<std::string, std::unique_ptr<std::vector<ProfileInfo>>>& mergedProfileInfo)
 	{
 		std::string reportFilename = filename;
@@ -273,7 +316,22 @@ struct FileCallbackInfo
 
 		for (auto& it : lineData)
 		{
-			ofs << "FILE: " << it.first << std::endl;
+            // Replace by relative path if code path is fully include inside
+            std::string fileName = it.first;
+            std::string sourceLower = RuntimeOptions::Instance().CodePath;
+            std::transform(sourceLower.begin(), sourceLower.end(), sourceLower.begin(), ::tolower);
+
+            if(!RuntimeOptions::Instance().Exclude.empty() && fileName.find(RuntimeOptions::Instance().Exclude) != std::string::npos)
+            {
+                continue;
+            }
+
+            if(RuntimeOptions::Instance().Relative && fileName.find(sourceLower) != std::string::npos)
+            {
+                fileName = relativePath(fileName, sourceLower).string();
+            }
+
+			ofs << "FILE: " << fileName << std::endl;
 			auto ptr = it.second.get();
 
 			std::string result;
