@@ -47,7 +47,7 @@ public:
 	{
 		if (sourcePath.empty())
 		{
-			if (CodePath.size() != 0)
+			if (!CodePath.empty())
 			{
 				auto idx = CodePath.find("x64");
 				if (idx == std::string::npos)
