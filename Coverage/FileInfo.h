@@ -45,6 +45,34 @@ struct FileInfo
 					}
 				}
 			}
+            else
+            {
+                idx = line.find("//");
+                if(idx != std::string::npos)
+                {
+                    size_t jdx = line.find_first_not_of(' ', idx + 2);
+                    if(jdx != std::string::npos)
+                    {
+                        std::string prag = line.substr(jdx);
+                        size_t kdx = prag.find(' ');
+                        if(kdx != std::string::npos)
+                        {
+                            prag = prag.substr(0, kdx);
+                        }
+
+                        if(prag == "DisableCodeCoverage")
+                        {
+                            current = false;
+                        }
+                        else if(prag == "EnableCodeCoverage")
+                        {
+                            relevant.push_back(current);
+                            current = true;
+                            continue;
+                        }
+                    }
+                }
+            }
 
 			relevant.push_back(current);
 		}

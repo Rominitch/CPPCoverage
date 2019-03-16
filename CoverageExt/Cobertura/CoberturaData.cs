@@ -211,8 +211,6 @@ namespace NubiloSoft.CoverageExt.Cobertura
                         }
                     }
                 }
-
-                sr.Close();
             }
 
             if (state != State.XML)

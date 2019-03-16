@@ -9,9 +9,11 @@
 #include <DbgHelp.h>
 #pragma warning(default: 4091)
 
+#pragma warning(disable: 4068)
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-typedef int(__cdecl *InvokeMethodSignature)();
+using InvokeMethodSignature = int(__cdecl *)();
 
 namespace MinimumTest
 {
@@ -24,18 +26,17 @@ namespace MinimumTest
 
 			HANDLE process = GetCurrentProcess();
 			SymSetOptions(SYMOPT_LOAD_LINES);
-			SymInitialize(process, NULL, TRUE);
+			SymInitialize(process, nullptr, TRUE);
 
 			static const int MaxCallStack = 62; // // ## The sum of the FramesToSkip and FramesToCapture parameters must be less than 63 on Win2003
 			void* callers[MaxCallStack];
-			auto stackCount = RtlCaptureStackBackTrace(1, MaxCallStack, callers, NULL);
+			auto stackCount = RtlCaptureStackBackTrace(1, MaxCallStack, callers, nullptr);
 
 			SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO *>(calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1));
 			symbol->MaxNameLen = 255;
 			symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-			SymFromAddr(process, reinterpret_cast<DWORD64>(callers[0]), 0, symbol);
-
+			SymFromAddr(process, reinterpret_cast<DWORD64>(callers[0]), nullptr, symbol);
 
 			if (false)
 			{
@@ -52,6 +53,15 @@ namespace MinimumTest
 #pragma EnableCodeCoverage
 		}
 
+        TEST_METHOD(TestMethod3)
+        {
+// DisableCodeCoverage
+
+            std::cout << "This won't show up in code coverage." << std::endl;
+
+// EnableCodeCoverage
+        }
+
 		static void TestDLL()
 		{
 			HINSTANCE hinstLib;
@@ -65,7 +75,7 @@ namespace MinimumTest
 			// If the handle is valid, try to get the function address.
 
 			bool success = false;
-			if (hinstLib != NULL)
+			if (hinstLib != nullptr)
 			{
 				RunDllTest = (InvokeMethodSignature)GetProcAddress(hinstLib, "RunAll");
 
@@ -149,3 +159,5 @@ namespace MinimumTest
 		}
 	};
 }
+
+#pragma warning(default: 4068)

@@ -5,9 +5,9 @@ you with an easy-to-use, light-weight C++ code coverage and profiler, right from
 
 # Installation
 
-Prerequisites: VS2013 or VS2015. Any edition should work, even though this is only tested on VS2015 Community.
+Prerequisites: VS2017 or VS2019 preview. Any edition should work, even though this is only tested on VS2017 Community.
 
-- Install this extension: https://github.com/atlaste/VSOpenCPPCoverage/raw/master/CoverageExt/CoverageExt.vsix .
+- Install this extension: https://github.com/atlaste/VSOpenCPPCoverage/raw/master/CoverageExt/CoverageExt.vsix.
 
 # Getting started
 
@@ -17,7 +17,7 @@ Working with CPPCoverage is a breeze. Basically install and use, there's nothing
 - Build your solution in Debug mode. Make sure to compile with '/DEBUG'; '/DEBUG:FastLink' is currently unsupported .
 - Right-click in solution explorer on the test or application project, click "Run code coverage".
 - Open a file that you want to show coverage info for. If the file is already open, close it and open it again. 
-- For an overview, go to Tools -> Coverage report
+- For an overview, go to Tools &rarr; Coverage report
 - Coverage is measured in a background thread. Watch the output window to see when it's finished.
 
 # Features
@@ -34,9 +34,11 @@ Working with CPPCoverage is a breeze. Basically install and use, there's nothing
 
 ![alt tag](Screenshots/SolutionExplorer.png)
 
-- Hide code from code coverage results using #pragma DisableCodeCoverage and #pragma EnableCodeCoverage:
+- Hide code from code coverage results using #pragma DisableCodeCoverage and #pragma EnableCodeCoverage 
 
 ![alt tag](Screenshots/Pragmas.png)
+
+Alternative system is to use single comment: // DisableCodeCoverage and // EnableCodeCoverage
 
 - Sampling-based profiling data is gathered as a by-product
 
