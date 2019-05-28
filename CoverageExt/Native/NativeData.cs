@@ -136,7 +136,14 @@ namespace NubiloSoft.CoverageExt.Native
                                 continue;
                             }
 
-                            lookup.Add(currentFile.ToLower(), new Tuple<BitVector, ProfileVector>(currentVector, currentProfile));
+                            try
+                            {
+                                lookup.Add(currentFile.ToLower(), new Tuple<BitVector, ProfileVector>(currentVector, currentProfile));
+                            }
+                            catch (Exception e)
+                            {
+                                output.WriteLine("Error loading coverage report: {0} with key {1}", e.Message, currentFile.ToLower());
+                            }
                         }
                     }
                     // otherwise: ignore; grab next line
