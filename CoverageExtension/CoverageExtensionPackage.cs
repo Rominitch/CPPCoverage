@@ -1,9 +1,17 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Task = System.Threading.Tasks.Task;
+using NubiloSoft.CoverageExt.Report;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Task = System.Threading.Tasks.Task;
+using NubiloSoft.CoverageExt;
+using System.Collections.ObjectModel;
+using NubiloSoft.CoverageExt.Sources;
+using System.Globalization;
+using System.Diagnostics;
 
 namespace CoverageExtension
 {
@@ -25,13 +33,32 @@ namespace CoverageExtension
     /// </para>
     /// </remarks>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [Guid(CoverageExtensionPackage.PackageGuidString)]
-    public sealed class CoverageExtensionPackage : AsyncPackage
+    [InstalledProductRegistration("#1110", "#1112", "1.0", IconResourceID = 1400)] // Info on this package for Help/About
+    [ProvideToolWindow(typeof(CoverageReportToolWindow))]
+    [ProvideMenuResource("Menus.ctmenu", 1)]
+    [Guid(CoverageMenuPackage.PackageGuidString)]
+    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionOpening_string, PackageAutoLoadFlags.BackgroundLoad)]
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
+    public sealed class CoverageMenuPackage : AsyncPackage
     {
         /// <summary>
-        /// CoverageExtensionPackage GUID string.
+        /// CoverageMenuPackage GUID string.
         /// </summary>
-        public const string PackageGuidString = "8fa6af4c-a336-48da-b1d3-71e4056dae75";
+        public const string PackageGuidString = "064052bb-e23a-4200-bdd9-b3cc715b8288";
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CoverageMenuPackage"/> class.
+        /// </summary>
+        public CoverageMenuPackage()
+        {
+            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Build CppCoverage"));
+        }
+
+        private EnvDTE80.DTE2  dte;
+        private DteInitializer dteInitializer;
+        private IVsSolution    solutionService;
+        private SolutionEvent  eventSolution;
+        public ObservableCollection<string> EventsList { get; set; }
 
         #region Package Members
 
@@ -44,11 +71,43 @@ namespace CoverageExtension
         /// <returns>A task representing the async work of package initialization, or an already completed task if there is none. Do not return null from this method.</returns>
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
+            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "InitializeAsync CppCoverage"));
+
             // When initialized asynchronously, the current thread may be a background thread at this point.
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+
+            //Critical initialization
+            solutionService = this.GetService(typeof(SVsSolution)) as IVsSolution;
+
+            // Get DTE
+            InitializeDTE();
+
+            // Add event tracker
+            eventSolution = new SolutionEvent(solutionService, this.dte);
+
+            // Build menu
+            await CoverageMenu.InitializeAsync(this, this.dte);
         }
 
         #endregion
+
+        // See http://www.mztools.com/articles/2013/MZ2013029.aspx
+        private void InitializeDTE()
+        {
+            IVsShell shellService;
+
+            this.dte = this.GetService(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE80.DTE2;
+
+            if (this.dte == null) // The IDE is not yet fully initialized
+            {
+                shellService = this.GetService(typeof(SVsShell)) as IVsShell;
+                this.dteInitializer = new DteInitializer(shellService, this.InitializeDTE);
+            }
+            else
+            {
+                this.dteInitializer = null;
+            }
+        }
     }
 }

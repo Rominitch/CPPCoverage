@@ -49,8 +49,6 @@ namespace CoverageExtension
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
-            dte = package.GetServiceAsync(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE80.DTE2;
-
             var reportID = new CommandID(CommandSet, ReportId);
             var reportItem = new MenuCommand(this.OnShowReport, reportID);
             commandService.AddCommand(reportItem);
@@ -95,7 +93,7 @@ namespace CoverageExtension
         /// Initializes the singleton instance of the command.
         /// </summary>
         /// <param name="package">Owner package, not null.</param>
-        public static async Task InitializeAsync(AsyncPackage package)
+        public static async Task InitializeAsync(AsyncPackage package, EnvDTE80.DTE2 ctxDTE)
         {
             // Switch to the main thread - the call to AddCommand in CoverageMenu's constructor requires
             // the UI thread.
@@ -103,6 +101,7 @@ namespace CoverageExtension
 
             OleMenuCommandService commandService = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
             Instance = new CoverageMenu(package, commandService);
+            Instance.dte = ctxDTE;
         }
 
         /// <summary>
