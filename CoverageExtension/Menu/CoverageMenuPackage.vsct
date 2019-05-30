@@ -39,6 +39,10 @@
       <Group guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" priority="0x0600">
         <Parent guid="guidCoverageMenuPackageCmdSet" id="TopLevelMenu"/>
       </Group>
+
+      <Group guid="guidProjectSpecificMenuCmdSet" id="RunCoverageMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE"/>
+      </Group>
     </Groups>
 
     <!--Buttons section. -->
@@ -71,6 +75,17 @@
         <Icon guid="guidImages" id="bmpTools" />
         <Strings>
           <ButtonText>About</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidProjectSpecificMenuCmdSet" id="cmdCoverageGenerate" priority="0x0100" type="Button">
+        <Parent guid="guidProjectSpecificMenuCmdSet" id="RunCoverageMenuGroup" />
+        <Icon guid="guidImages" id="bmpTools" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <!-- CommandFlag DefaultInvisible - Apparently not working correctly. Unsure why. -->
+        <Strings>
+          <CommandName>cmdCoverageGenerate</CommandName>
+          <ButtonText>Run coverage</ButtonText>
         </Strings>
       </Button>
     </Buttons>
@@ -110,6 +125,12 @@
       <IDSymbol name="TopLevelMenu" value="0x1021" />
     </GuidSymbol>
 
+    <GuidSymbol name="guidProjectSpecificMenuCmdSet" value="{CAA6399C-8807-43AB-A999-2CA0DB82A56C}">
+      <!-- Context menu (Run coverage) -->
+      <IDSymbol name="RunCoverageMenuGroup" value="0x2001" />
+      <IDSymbol name="cmdCoverageGenerate" value="0x0103"/>
+    </GuidSymbol>
+    
     <GuidSymbol name="guidImages" value="{71634924-ea3d-4b56-ab34-1d53e7c3141a}" >
       <IDSymbol name="bmpTools" value="1" />
       <IDSymbol name="bmpReport" value="2" />

@@ -70,6 +70,7 @@
     <Compile Include="Sources\Cobertura\State.cs" />
     <Compile Include="Sources\CodeRendering\CodeTextAdornment.cs" />
     <Compile Include="Sources\CodeRendering\CodeTextAdornmentTextViewCreationListener.cs" />
+    <Compile Include="Sources\CoverageExecution.cs" />
     <Compile Include="Sources\Data\BitVector.cs" />
     <Compile Include="Sources\Data\ICoverageData.cs" />
     <Compile Include="Sources\Data\IReportManager.cs" />

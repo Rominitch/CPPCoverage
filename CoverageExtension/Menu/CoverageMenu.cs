@@ -9,6 +9,8 @@ using NubiloSoft.CoverageExt.Sources;
 using NubiloSoft.CoverageExt.Properties;
 using Task = System.Threading.Tasks.Task;
 using NubiloSoft.CoverageExt.Report;
+using NubiloSoft.CoverageExt;
+using Microsoft.VisualStudio.VCProjectEngine;
 
 namespace CoverageExtension
 {
@@ -23,11 +25,13 @@ namespace CoverageExtension
         public const int ReportId     = 0x0100;
         public const int PreferenceId = 0x0101;
         public const int AboutId      = 0x0102;
+        public const int CtxRunId     = 0x0103;
 
         /// <summary>
         /// Command menu group (command set GUID).
         /// </summary>
-        public static readonly Guid CommandSet = new Guid("f35ab8cc-88d2-418f-a169-b48e6ea4c6dc");
+        public static readonly Guid CommandSet     = new Guid("f35ab8cc-88d2-418f-a169-b48e6ea4c6dc");
+        public static readonly Guid ContextMenuSet = new Guid("CAA6399C-8807-43AB-A999-2CA0DB82A56C");
 
         /// <summary>
         /// VS Package that provides this command, not null.
@@ -45,6 +49,8 @@ namespace CoverageExtension
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
+            dte = package.GetServiceAsync(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE80.DTE2;
+
             var reportID = new CommandID(CommandSet, ReportId);
             var reportItem = new MenuCommand(this.OnShowReport, reportID);
             commandService.AddCommand(reportItem);
@@ -56,6 +62,12 @@ namespace CoverageExtension
             var aboutID = new CommandID(CommandSet, AboutId);
             var aboutItem = new MenuCommand(this.OnShowAbout, aboutID);
             commandService.AddCommand(aboutItem);
+
+            // Create the command for the context menu
+            CommandID contextMenuCommandID = new CommandID(ContextMenuSet, CtxRunId);
+            OleMenuCommand menuItem = new OleMenuCommand(ProjectContextMenuItemCallback, contextMenuCommandID);
+            menuItem.BeforeQueryStatus += ProjectContextMenuItem_BeforeQueryStatus;
+            commandService.AddCommand(menuItem);
         }
 
         /// <summary>
@@ -77,6 +89,7 @@ namespace CoverageExtension
                 return this.package;
             }
         }
+        private EnvDTE80.DTE2 dte;
 
         /// <summary>
         /// Initializes the singleton instance of the command.
@@ -146,6 +159,137 @@ namespace CoverageExtension
                 OLEMSGICON.OLEMSGICON_INFO,
                 OLEMSGBUTTON.OLEMSGBUTTON_OK,
                 OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+        }
+
+        private EnvDTE80.DTE2 GetDTE()
+        {
+            return this.dte;
+        }
+
+        /// <summary>
+        /// Checks if we should render the context menu item or not.
+        /// </summary>
+        private void ProjectContextMenuItem_BeforeQueryStatus(object sender, EventArgs e)
+        {
+            var dte = GetDTE();
+            OleMenuCommand menuCommand = sender as OleMenuCommand;
+            if (menuCommand != null && dte != null)
+            {
+                menuCommand.Visible = false;  // default to not visible
+                Array selectedProjects = (Array)dte.ActiveSolutionProjects;
+                //only support 1 selected project
+                if (selectedProjects.Length == 1)
+                {
+                    EnvDTE.Project project = (EnvDTE.Project)selectedProjects.GetValue(0);
+
+                    // TODO FIXME: We should probably check if it's a DLL as well.
+
+                    if (project.FullName.EndsWith(".vcxproj"))
+                    {
+                        menuCommand.Visible = true;
+                    }
+                }
+            }
+        }
+
+        private void ProjectContextMenuItemCallback(object sender, EventArgs e)
+        {
+            var dte = GetDTE().DTE;
+
+            OutputWindow outputWindow = null;
+            try
+            {
+                outputWindow = new OutputWindow(dte);
+
+                OleMenuCommand menuCommand = sender as OleMenuCommand;
+                if (menuCommand != null && dte != null)
+                {
+                    Array selectedProjects = (Array)dte.ActiveSolutionProjects;
+                    //only support 1 selected project
+                    if (selectedProjects.Length == 1)
+                    {
+                        EnvDTE.Project project = (EnvDTE.Project)selectedProjects.GetValue(0);
+                        var vcproj = project.Object as VCProject;
+                        if (vcproj != null)
+                        {
+                            IVCCollection configs = (IVCCollection)vcproj.Configurations;
+                            VCConfiguration cfg = (VCConfiguration)vcproj.ActiveConfiguration;
+                            VCDebugSettings debug = (VCDebugSettings)cfg.DebugSettings;
+
+                            string command = null;
+                            string arguments = null;
+                            string workingDirectory = null;
+                            if (debug != null)
+                            {
+                                command = cfg.Evaluate(debug.Command);
+                                workingDirectory = cfg.Evaluate(debug.WorkingDirectory);
+                                arguments = cfg.Evaluate(debug.CommandArguments);
+                            }
+
+                            VCPlatform currentPlatform = (VCPlatform)cfg.Platform;
+
+                            string platform = currentPlatform == null ? null : currentPlatform.Name;
+                            if (platform != null)
+                            {
+                                platform = platform.ToLower();
+                                if (platform.Contains("x64"))
+                                {
+                                    platform = "x64";
+                                }
+                                else if (platform.Contains("x86") || platform.Contains("win32"))
+                                {
+                                    platform = "x86";
+                                }
+                                else
+                                {
+                                    throw new NotSupportedException("Platform is not supported.");
+                                }
+                            }
+                            else
+                            {
+                                cfg = (VCConfiguration)configs.Item("Debug|x64");
+                                platform = "x64";
+
+                                if (cfg == null)
+                                {
+                                    throw new NotSupportedException("Cannot find x64 platform for project.");
+                                }
+                            }
+
+                            if (command == null || String.IsNullOrEmpty(command))
+                                command = cfg.PrimaryOutput;
+
+                            if (command != null)
+                            {
+                                var solutionFolder = System.IO.Path.GetDirectoryName(dte.Solution.FileName);
+
+                                CoverageExecution executor = new CoverageExecution(dte, outputWindow);
+                                executor.Start(
+                                    solutionFolder,
+                                    platform,
+                                    System.IO.Path.GetDirectoryName(command),
+                                    System.IO.Path.GetFileName(command),
+                                    workingDirectory,
+                                    arguments);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (NotSupportedException ex)
+            {
+                if (outputWindow != null)
+                {
+                    outputWindow.WriteLine("Error running coverage: {0}", ex.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (outputWindow != null)
+                {
+                    outputWindow.WriteLine("Unexpected code coverage failure; error: {0}", ex.ToString());
+                }
+            }
         }
     }
 }
