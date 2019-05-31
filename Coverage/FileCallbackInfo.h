@@ -17,7 +17,6 @@
 
 // C++ 17
 #include <filesystem>
-#define FILESYSTEM std::experimental::filesystem
 
 struct FileCallbackInfo
 {
@@ -270,22 +269,22 @@ struct FileCallbackInfo
 		ofs << "</coverage>" << std::endl;
 	}
 
-    FILESYSTEM::path relativePath(const FILESYSTEM::path &path, const FILESYSTEM::path &relative_to)
+    std::filesystem::path relativePath(const std::filesystem::path &path, const std::filesystem::path &relative_to)
     {
         // create absolute paths
-        FILESYSTEM::path p = FILESYSTEM::absolute(path);
-        FILESYSTEM::path r = FILESYSTEM::absolute(relative_to);
+        std::filesystem::path p = std::filesystem::absolute(path);
+        std::filesystem::path r = std::filesystem::absolute(relative_to);
 
         // if root paths are different, return absolute path
         if(p.root_path() != r.root_path())
             return p;
 
         // initialize relative path
-        FILESYSTEM::path result;
+        std::filesystem::path result;
 
         // find out where the two paths diverge
-        FILESYSTEM::path::const_iterator itr_path = p.begin();
-        FILESYSTEM::path::const_iterator itr_relative_to = r.begin();
+        std::filesystem::path::const_iterator itr_path = p.begin();
+        std::filesystem::path::const_iterator itr_relative_to = r.begin();
         while(*itr_path == *itr_relative_to && itr_path != p.end() && itr_relative_to != r.end()) {
             ++itr_path;
             ++itr_relative_to;
@@ -311,8 +310,7 @@ struct FileCallbackInfo
 
 	void WriteNative(const std::string& filename, std::unordered_map<std::string, std::unique_ptr<std::vector<ProfileInfo>>>& mergedProfileInfo)
 	{
-		std::string reportFilename = filename;
-		std::ofstream ofs(reportFilename);
+		std::ofstream ofs(filename, std::ofstream::out);
 
 		for (auto& it : lineData)
 		{
@@ -326,9 +324,14 @@ struct FileCallbackInfo
                 continue;
             }
 
-            if(RuntimeOptions::Instance().Relative && fileName.find(sourceLower) != std::string::npos)
+            // When relative system ...
+            if(RuntimeOptions::Instance().Relative)
             {
-                fileName = relativePath(fileName, sourceLower).string();
+                // ... search part of path (in lower case or normal)
+                if(fileName.find(sourceLower) != std::string::npos)
+                    fileName = relativePath(fileName, sourceLower).string();
+                else if(fileName.find(RuntimeOptions::Instance().CodePath) != std::string::npos)
+                    fileName = relativePath(fileName, RuntimeOptions::Instance().CodePath).string();
             }
 
 			ofs << "FILE: " << fileName << std::endl;
@@ -381,5 +384,14 @@ struct FileCallbackInfo
 				ofs << std::endl;
 			}
 		}
+
+        ofs.close();
+
+        // Check file exists after write
+        if (!std::filesystem::exists(filename))
+        {
+            const std::string msg = "ERROR: Coverage file hasn't been write on disk at " + filename;
+            throw std::exception(msg.c_str());
+        }   
 	}
 };

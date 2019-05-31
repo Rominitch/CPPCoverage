@@ -198,9 +198,9 @@ struct CoverageRunner
 			}
 
 			// Find relative address of IsDebuggerPresent using our own version. We're sure it's the same, so why not:
-			auto module = GetModuleHandle("KernelBase.dll");
-			auto modAddr = reinterpret_cast<BYTE*>(module);
-			auto fcnAddr = GetProcAddress(module, "IsDebuggerPresent");
+			auto moduleKer = GetModuleHandle("KernelBase.dll");
+			auto modAddr = reinterpret_cast<BYTE*>(moduleKer);
+			auto fcnAddr = GetProcAddress(moduleKer, "IsDebuggerPresent");
 
 			PVOID processAddress =
 				reinterpret_cast<PVOID>(
@@ -963,7 +963,7 @@ struct CoverageRunner
 		}
 
 		auto outputFile = options.OutputFile;
-		if (outputFile.size() == 0)
+		if (outputFile.empty())
 		{
 			outputFile = options.Executable + ".cov";
 		}

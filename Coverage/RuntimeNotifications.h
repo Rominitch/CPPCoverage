@@ -81,9 +81,9 @@ struct RuntimeNotifications
 	{
 		std::string s = t;
 		s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-										std::not1(std::ptr_fun<int, int>(std::isspace))));
+										std::not_fn(std::cref(std::isspace))));
 		s.erase(std::find_if(s.rbegin(), s.rend(),
-							 std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+							 std::not_fn(std::cref(std::isspace))).base(), s.end());
 		return s;
 	}
 
