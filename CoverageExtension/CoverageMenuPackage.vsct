@@ -67,7 +67,7 @@
         <Parent guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpTools" />
         <Strings>
-          <ButtonText>Preferencies</ButtonText>
+          <ButtonText>Options...</ButtonText>
         </Strings>
       </Button>
       <Button guid="guidCoverageMenuPackageCmdSet" id="AboutId" priority="0x0100" type="Button">
@@ -97,7 +97,7 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="..\Resources\CoverageIcons.png" usedList="bmpTools, bmpReport"/>
+      <Bitmap guid="guidImages" href="Resources\CoverageIcons.png" usedList="bmpTools, bmpReport"/>
     </Bitmaps>
 
     <Menus>

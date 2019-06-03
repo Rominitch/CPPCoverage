@@ -54,7 +54,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Menu\CoverageMenu.cs" />
+    <Compile Include="Sources\GUI\CoverageMenu.cs" />
     <Compile Include="Package.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CoverageExtensionPackage.cs" />
@@ -76,6 +76,10 @@
     <Compile Include="Sources\Data\ProfileVector.cs" />
     <Compile Include="Sources\Data\ReportManagerSingleton.cs" />
     <Compile Include="Sources\DTEInitializer.cs" />
+    <Compile Include="Sources\GUI\options.xaml.cs">
+      <DependentUpon>options.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Sources\GUI\OptionsToolWindow.cs" />
     <Compile Include="Sources\Native\NativeData.cs" />
     <Compile Include="Sources\Native\NativeReportManager.cs" />
     <Compile Include="Sources\OutputWindow.cs" />
@@ -128,7 +132,7 @@
     <Content Include="Resources\CoverageIcons.png" />
     <Content Include="Resources\CoverageMenu.png" />
     <Content Include="Resources\CoverageMenuPackage.ico" />
-    <VSCTCompile Include="Menu\CoverageMenuPackage.vsct">
+    <VSCTCompile Include="CoverageMenuPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
     <Content Include="Resources\Package.ico">
@@ -158,6 +162,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Sources\GUI\options.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Sources\Report\CoverageReport.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

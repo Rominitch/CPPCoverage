@@ -1,18 +1,14 @@
 ﻿using System;
 using System.ComponentModel.Design;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using NubiloSoft.CoverageExt.Sources;
 using NubiloSoft.CoverageExt.Properties;
 using Task = System.Threading.Tasks.Task;
 using NubiloSoft.CoverageExt.Report;
-using NubiloSoft.CoverageExt;
 using Microsoft.VisualStudio.VCProjectEngine;
 
-namespace CoverageExtension
+namespace NubiloSoft.CoverageExt
 {
     /// <summary>
     /// Command handler
@@ -131,17 +127,22 @@ namespace CoverageExtension
         private void OnShowPreferences(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            string message = string.Format(CultureInfo.CurrentCulture, "My preferences");
-            string title = "Preferences";
 
-            // Show a message box to prove we were here
-            VsShellUtilities.ShowMessageBox(
-                this.package,
-                message,
-                title,
-                OLEMSGICON.OLEMSGICON_INFO,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            Options options = new Options();
+            options.ShowModal();
+            /*
+            // Get the instance number 0 of this tool window. This window is single instance so this instance
+            // is actually the only one.
+            // The last flag is set to true so that if the tool window does not exists it will be created.
+            ToolWindowPane window = this.package.FindToolWindow(typeof(OptionsToolWindow), 0, true);
+            if ((null == window) || (null == window.Frame))
+            {
+                throw new NotSupportedException(Resources.CanNotCreateWindow);
+            }
+
+            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+            */
         }
 
         private void OnShowAbout(object sender, EventArgs e)

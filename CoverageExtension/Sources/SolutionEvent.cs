@@ -52,7 +52,11 @@ namespace NubiloSoft.CoverageExt.Sources
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
             string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
-            Settings.ReadSettings(solutionDir);
+
+            // Configure settings
+            Settings.solutionPath = solutionDir;
+            // Read file if exists
+            Settings.ReadSettings();
             return VSConstants.S_OK;
         }
 
@@ -68,6 +72,7 @@ namespace NubiloSoft.CoverageExt.Sources
 
         public int OnAfterCloseSolution(object pUnkReserved)
         {
+            Settings.solutionPath = string.Empty;
             return VSConstants.S_OK;
         }
     }

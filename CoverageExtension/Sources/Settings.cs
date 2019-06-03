@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Xml;
 
 namespace NubiloSoft.CoverageExt
@@ -12,8 +13,16 @@ namespace NubiloSoft.CoverageExt
         /// </summary>
         public static int timeoutCoverage = 60000;
 
-        public static void ReadSettings(string solutionPath)
+        public static string solutionPath;
+        public static ArrayList exclude;
+
+        public static void ReadSettings()
         {
+            if (String.IsNullOrEmpty(solutionPath))
+            {
+                throw new InvalidOperationException("Missing to initialize solution");
+            }
+
             // Load settings if possible
             XmlDocument doc = new XmlDocument();
             try
@@ -28,8 +37,13 @@ namespace NubiloSoft.CoverageExt
             }
         }
 
-        public static void SaveSettings(string solutionPath)
+        public static void SaveSettings()
         {
+            if (String.IsNullOrEmpty(solutionPath))
+            {
+                throw new InvalidOperationException("Missing to initialize solution");
+            }
+
             string pathCover = solutionPath + "\\.coverage";
             try
             {
@@ -57,6 +71,22 @@ namespace NubiloSoft.CoverageExt
                     timeCov.AppendChild(text2);
                     first.AppendChild(timeCov);
                 }
+
+                // Exclude
+                {
+                    XmlElement excludes = doc.CreateElement(string.Empty, "Excludes", string.Empty);
+
+                    foreach(string ex in exclude)
+                    {
+                        XmlElement exclude = doc.CreateElement(string.Empty, "Exclude", string.Empty);
+                        XmlText text = doc.CreateTextNode(ex);
+                        exclude.AppendChild(text);
+                        excludes.AppendChild(exclude);
+                    }
+                    
+                    first.AppendChild(excludes);
+                }
+                
 
                 doc.Save(pathCover + "\\settings.xml");
             }
