@@ -21,9 +21,12 @@ namespace NubiloSoft.CoverageExt.Report
     /// This class derives from the ToolWindowPane class provided from the MPF in order to use its 
     /// implementation of the IVsUIElementPane interface.
     /// </summary>
-    [Guid("3466b21d-038a-4625-b96b-c9d4f437afc2")]
+    [Guid(WindowGuidString)]
     public class CoverageReportToolWindow : ToolWindowPane
     {
+        public const string WindowGuidString = "3466b21d-038a-4625-b96b-c9d4f437afc2";
+        public const string Title = "Report";
+
         /// <summary>
         /// Standard constructor for the tool window.
         /// </summary>

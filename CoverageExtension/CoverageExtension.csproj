@@ -29,7 +29,7 @@
     <UseCodebase>true</UseCodebase>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
     <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
-    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>true</IncludeDebugSymbolsInLocalVSIXDeployment>
     <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
     <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
     <StartAction>Program</StartAction>
@@ -54,8 +54,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CoverageReport.xaml.cs">
+      <DependentUpon>CoverageReport.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="options.xaml.cs">
+      <DependentUpon>options.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Sources\GUI\CoverageMenu.cs" />
-    <Compile Include="Package.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CoverageExtensionPackage.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -76,16 +81,9 @@
     <Compile Include="Sources\Data\ProfileVector.cs" />
     <Compile Include="Sources\Data\ReportManagerSingleton.cs" />
     <Compile Include="Sources\DTEInitializer.cs" />
-    <Compile Include="Sources\GUI\options.xaml.cs">
-      <DependentUpon>options.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Sources\GUI\OptionsToolWindow.cs" />
     <Compile Include="Sources\Native\NativeData.cs" />
     <Compile Include="Sources\Native\NativeReportManager.cs" />
     <Compile Include="Sources\OutputWindow.cs" />
-    <Compile Include="Sources\Report\CoverageReport.xaml.cs">
-      <DependentUpon>CoverageReport.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Sources\Report\CoverageReportToolWindow.cs" />
     <Compile Include="Sources\Settings.cs" />
     <Compile Include="Sources\SolutionEvent.cs" />
@@ -125,18 +123,19 @@
     </Content>
     <Content Include="Resources\Coverage-x64.exe">
       <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Resources\Coverage-x86.exe">
       <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Resources\CoverageIcons.png" />
-    <Content Include="Resources\CoverageMenu.png" />
-    <Content Include="Resources\CoverageMenuPackage.ico" />
+    <Content Include="Resources\CoverageIcons.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <VSCTCompile Include="CoverageMenuPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
     <Content Include="Resources\Package.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>
@@ -162,11 +161,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Sources\GUI\options.xaml">
+    <Page Include="CoverageReport.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Sources\Report\CoverageReport.xaml">
+    <Page Include="options.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

@@ -48,7 +48,7 @@ namespace NubiloSoft.CoverageExt
             try
             {
                 // Build final directory if not exist
-                if(System.IO.Directory.Exists(pathCover))
+                if(!System.IO.Directory.Exists(pathCover))
                 {
                     System.IO.Directory.CreateDirectory(pathCover);
                 }
@@ -73,6 +73,7 @@ namespace NubiloSoft.CoverageExt
                 }
 
                 // Exclude
+                if(Settings.exclude != null)
                 {
                     XmlElement excludes = doc.CreateElement(string.Empty, "Excludes", string.Empty);
 
