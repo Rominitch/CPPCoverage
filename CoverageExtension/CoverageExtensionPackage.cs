@@ -92,6 +92,9 @@ namespace NubiloSoft.CoverageExt
 
                 // Build menu
                 await CoverageMenu.InitializeAsync(this, this.dte);
+
+                // Call auto load
+                eventSolution.OnAfterOpenSolution(null, 0);
             }
             catch(Exception)
             {

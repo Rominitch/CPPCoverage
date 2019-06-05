@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows;
-using System.Windows.Input;
 using Microsoft.VisualStudio.PlatformUI;
 
 namespace NubiloSoft.CoverageExt
@@ -18,6 +18,7 @@ namespace NubiloSoft.CoverageExt
         private void OptionsWindow_Loaded(object sender, RoutedEventArgs e)
         {
             timeoutLineText.Text = Settings.timeoutCoverage.ToString();
+            SharableCB.IsChecked = Settings.isSharable;
 
             if (Settings.exclude != null)
             {
@@ -42,12 +43,12 @@ namespace NubiloSoft.CoverageExt
             
         }
  
-        private void addExclude(object sender, RoutedEventArgs e)
+        private void AddExclude(object sender, RoutedEventArgs e)
         {
             ExcludesList.Items.Add(ExcludeName.Text);
         }
 
-        private void deleteExclude(object sender, RoutedEventArgs e)
+        private void DeleteExclude(object sender, RoutedEventArgs e)
         {
             if(ExcludesList.SelectedItem != null)
             {
@@ -55,22 +56,30 @@ namespace NubiloSoft.CoverageExt
             }
         }
 
-        private void onSave(object sender, RoutedEventArgs e)
+        private void OnSave(object sender, RoutedEventArgs e)
         {
-            Settings.timeoutCoverage = Int32.Parse(timeoutLineText.Text);
-
-            if (Settings.exclude == null)
-                Settings.exclude = new System.Collections.ArrayList();
-
-            Settings.exclude.Clear();
-            foreach(var item in ExcludesList.Items)
+            try
             {
-                Settings.exclude.Add(item.ToString());
+                Settings.timeoutCoverage = Int32.Parse(timeoutLineText.Text);
+                Settings.isSharable = SharableCB.IsChecked ?? true;
+
+                if (Settings.exclude == null)
+                    Settings.exclude = new System.Collections.ArrayList();
+
+                Settings.exclude.Clear();
+                foreach (var item in ExcludesList.Items)
+                {
+                    Settings.exclude.Add(item.ToString());
+                }
+
+                Settings.SaveSettings();
+
+                Close();
             }
-
-            Settings.SaveSettings();
-
-            Close();
+            catch(Exception exp)
+            {
+                Debug.WriteLine("The product name is " + exp.ToString());
+            }
         }
     }
 }

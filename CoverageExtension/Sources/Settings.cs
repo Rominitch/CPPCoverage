@@ -12,6 +12,7 @@ namespace NubiloSoft.CoverageExt
         /// Time of execution of subprocess coverage in ms.
         /// </summary>
         public static int timeoutCoverage = 60000;
+        public static bool isSharable = true;
 
         public static string solutionPath;
         public static ArrayList exclude;
@@ -29,11 +30,25 @@ namespace NubiloSoft.CoverageExt
             {
                 doc.Load(solutionPath + "\\.coverage\\settings.xml");
 
-                timeoutCoverage = Int32.Parse(doc.DocumentElement.SelectSingleNode("/timeoutCoverage").InnerText);
+                // Read node
+                timeoutCoverage = Int32.Parse(doc.DocumentElement.SelectSingleNode("/settings/timeoutCoverage").InnerText);
+
+                isSharable = bool.Parse(doc.DocumentElement.SelectSingleNode("/settings/isSharable").InnerText);
+
+                if (Settings.exclude == null)
+                    Settings.exclude = new ArrayList();
+                Settings.exclude.Clear();
+
+                XmlNodeList excludes = doc.SelectNodes("/settings/Excludes/Exclude");
+                foreach (XmlNode exclude in excludes)
+                {
+                    // Every node here is a <Period> child of the relevant <PeriodGroup>.
+                    Settings.exclude.Add(exclude.InnerText);
+                }
             }
-            catch(Exception)
+            catch(Exception exp)
             {
-                Console.WriteLine("Code coverage: Settings are not available.");
+                Console.WriteLine("Code coverage: Settings are not available." + exp.ToString());
             }
         }
 
@@ -70,6 +85,14 @@ namespace NubiloSoft.CoverageExt
                     XmlText text2 = doc.CreateTextNode(timeoutCoverage.ToString());
                     timeCov.AppendChild(text2);
                     first.AppendChild(timeCov);
+                }
+
+                // Is Sharable
+                {
+                    XmlElement isShare = doc.CreateElement(string.Empty, "isSharable", string.Empty);
+                    XmlText text2 = doc.CreateTextNode(isSharable.ToString());
+                    isShare.AppendChild(text2);
+                    first.AppendChild(isShare);
                 }
 
                 // Exclude

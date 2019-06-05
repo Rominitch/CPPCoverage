@@ -89,10 +89,22 @@ namespace NubiloSoft.CoverageExt
 
                     StringBuilder argumentBuilder = new StringBuilder();
 
-                    argumentBuilder.Append("-o \"");
-                    argumentBuilder.Append(resultFile);
-                    argumentBuilder.Append("\" -p \"");
+                    argumentBuilder.Append("-o \""+ resultFile + "\"");
+                    if (Settings.isSharable != null)
+                    {
+                        argumentBuilder.Append("-r");
+                    }
+                    argumentBuilder.Append("-p \"");
                     argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));
+
+                    // Add exclude path
+                    if(Settings.exclude != null)
+                    {
+                        foreach(var exclude in Settings.exclude)
+                        {
+                            argumentBuilder.Append("\" -x \"" + exclude);
+                        }
+                    }
 
                     if (workingDirectory != null && workingDirectory.Length > 0)
                     {
@@ -150,16 +162,16 @@ namespace NubiloSoft.CoverageExt
                     process.BeginErrorReadLine();
 
                     bool exited = false;
-                    while (!exited && lastEvent.AddMinutes(15) > DateTime.UtcNow)
+                    while (!exited && lastEvent.AddMilliseconds(Settings.timeoutCoverage) > DateTime.UtcNow)
                     {
-                        exited = process.WaitForExit(1000 * 60);
+                        exited = process.WaitForExit(Settings.timeoutCoverage);
                     }
 
                     if (!exited)
                     {
                         // Kill process.
                         process.Kill();
-                        throw new Exception("Creating code coverage timed out (more than 15min).");
+                        throw new Exception("Creating code coverage timed out. Do you have a locked program or need to change timeout into Options ?");
                     }
 
                     string output = tb.ToString();

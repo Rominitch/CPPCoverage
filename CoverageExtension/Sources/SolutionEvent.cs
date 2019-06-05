@@ -1,5 +1,7 @@
 ﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
+using System;
+using System.Diagnostics;
 
 namespace NubiloSoft.CoverageExt.Sources
 {
@@ -51,12 +53,25 @@ namespace NubiloSoft.CoverageExt.Sources
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
-            string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
+            Debug.WriteLine("Start with solution");
 
-            // Configure settings
-            Settings.solutionPath = solutionDir;
-            // Read file if exists
-            Settings.ReadSettings();
+            try
+            {
+                // Release all GUI
+                //->> ToDo !
+
+                // Reload data
+                string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
+
+                // Configure settings
+                Settings.solutionPath = solutionDir;
+                // Read file if exists
+                Settings.ReadSettings();
+            }
+            catch(Exception exp)
+            {
+                Debug.WriteLine("Error on loading solution: "+ exp.ToString());
+            }
             return VSConstants.S_OK;
         }
 
