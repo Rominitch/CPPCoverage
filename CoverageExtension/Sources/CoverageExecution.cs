@@ -89,10 +89,10 @@ namespace NubiloSoft.CoverageExt
 
                     StringBuilder argumentBuilder = new StringBuilder();
 
-                    argumentBuilder.Append("-o \""+ resultFile + "\"");
-                    if (Settings.isSharable != null)
+                    argumentBuilder.Append("-o \""+ resultFile + "\" ");
+                    if(Settings.isSharable)
                     {
-                        argumentBuilder.Append("-r");
+                        argumentBuilder.Append("-r ");
                     }
                     argumentBuilder.Append("-p \"");
                     argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));
