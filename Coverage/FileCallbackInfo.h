@@ -17,7 +17,6 @@
 
 // C++ 17
 #include <filesystem>
-#define FILESYSTEM std::experimental::filesystem
 
 struct FileCallbackInfo
 {
@@ -270,22 +269,22 @@ struct FileCallbackInfo
 		ofs << "</coverage>" << std::endl;
 	}
 
-    FILESYSTEM::path relativePath(const FILESYSTEM::path &path, const FILESYSTEM::path &relative_to)
+    std::filesystem::path relativePath(const std::filesystem::path &path, const std::filesystem::path &relative_to)
     {
         // create absolute paths
-        FILESYSTEM::path p = FILESYSTEM::absolute(path);
-        FILESYSTEM::path r = FILESYSTEM::absolute(relative_to);
+        std::filesystem::path p = std::filesystem::absolute(path);
+        std::filesystem::path r = std::filesystem::absolute(relative_to);
 
         // if root paths are different, return absolute path
         if(p.root_path() != r.root_path())
             return p;
 
         // initialize relative path
-        FILESYSTEM::path result;
+        std::filesystem::path result;
 
         // find out where the two paths diverge
-        FILESYSTEM::path::const_iterator itr_path = p.begin();
-        FILESYSTEM::path::const_iterator itr_relative_to = r.begin();
+        std::filesystem::path::const_iterator itr_path = p.begin();
+        std::filesystem::path::const_iterator itr_relative_to = r.begin();
         while(*itr_path == *itr_relative_to && itr_path != p.end() && itr_relative_to != r.end()) {
             ++itr_path;
             ++itr_relative_to;
