@@ -317,17 +317,16 @@ struct FileCallbackInfo
 		{
             // Replace by relative path if code path is fully include inside
             std::string fileName = it.first;
-            std::string sourceLower = RuntimeOptions::Instance().CodePath;
-            std::transform(sourceLower.begin(), sourceLower.end(), sourceLower.begin(), ::tolower);
 
+			// Check if path is exclude ?
             if(!RuntimeOptions::Instance().Exclude.empty() && fileName.find(RuntimeOptions::Instance().Exclude) != std::string::npos)
             {
                 continue;
             }
-
-            if(RuntimeOptions::Instance().Relative && fileName.find(sourceLower) != std::string::npos)
+			// Check if absolute path must be reduce ?
+            if(RuntimeOptions::Instance().Relative && fileName.find(RuntimeOptions::Instance().CodePath) != std::string::npos)
             {
-                fileName = relativePath(fileName, sourceLower).string();
+                fileName = relativePath(fileName, RuntimeOptions::Instance().CodePath).string();
             }
 
 			ofs << "FILE: " << fileName << std::endl;
