@@ -198,7 +198,7 @@ int main(int argc, const char** argv)
 {
 #ifdef _DEBUG
     int parsing = 0;
-    std::cout << "--- Arguments --- " << std::endl;
+    std::cout << "--- Arguments --- " << argc << std::endl;
     while(parsing < argc)
     {
         std::cout << parsing << ": " << argv[parsing] << std::endl;

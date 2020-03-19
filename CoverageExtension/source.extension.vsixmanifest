@@ -14,9 +14,9 @@ CPPCoverage is 100% open source and free under the BSD license. It doesn't get m
         <Tags>code coverage, visual studio</Tags>
     </Metadata>
     <Installation>
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[14.0, 17.0)" />
-        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[14.0, 17.0)" />
-        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[14.0, 17.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[14.0, 20.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[14.0, 20.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[14.0, 20.0)" />
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
@@ -24,7 +24,7 @@ CPPCoverage is 100% open source and free under the BSD license. It doesn't get m
         <Dependency d:Source="Installed" Id="Microsoft.VisualStudio.MPF.14.0" DisplayName="Visual Studio MPF 14.0" Version="[14.0,15.0)" />
     </Dependencies>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[14.0,17.0)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[14.0,20.0)" DisplayName="Visual Studio core editor" />
     </Prerequisites>
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />

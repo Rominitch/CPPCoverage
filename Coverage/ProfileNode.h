@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common.h"
+
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -30,7 +32,7 @@ struct ProfileFrame
 
 	void Update(DWORD64 lineNumber, bool shallow)
 	{
-		if (lineNumber < 0xf00000)
+		if (lineNumber < WINDOW_DEBUG_MEMORY)
 		{
 			auto it = lineHitCount.find(lineNumber);
 			if (it == lineHitCount.end())

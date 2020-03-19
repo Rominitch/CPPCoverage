@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.h"
 #include "FileLineInfo.h"
 #include "RuntimeOptions.h"
 
@@ -108,7 +109,7 @@ struct FileInfo
 			// a lot, but is actually out-of-bounds. We ignore both.
 			//
 			// Update: Apparently Microsoft has added new reserved line numbers to their debugging symbols. Joy...
-			if (lineNumber < 0xf00000 - 1 &&
+			if (lineNumber < WINDOW_DEBUG_MEMORY - 1 &&
 				lineNumber != numberLines)
 			{
 				if (!RuntimeOptions::Instance().Quiet)

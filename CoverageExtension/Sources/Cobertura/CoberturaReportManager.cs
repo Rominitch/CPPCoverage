@@ -48,6 +48,8 @@ namespace NubiloSoft.CoverageExt.Cobertura
 
         private ICoverageData UpdateDataImpl()
         {
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
             try
             {
                 string filename = dte.Solution.FileName;

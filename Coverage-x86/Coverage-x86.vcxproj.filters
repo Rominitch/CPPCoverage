@@ -28,6 +28,7 @@
     </ClInclude>
     <ClInclude Include="..\Coverage\RuntimeNotifications.h" />
     <ClInclude Include="..\Coverage\MergeRunner.h" />
+    <ClInclude Include="..\Coverage\Common.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Coverage\Main.cpp" />

@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Coverage\BreakpointData.h" />
+    <ClInclude Include="..\Coverage\Common.h" />
     <ClInclude Include="..\Coverage\CoverageRunner.h" />
     <ClInclude Include="..\Coverage\Disassembler\ReachabilityAnalysis.h" />
     <ClInclude Include="..\Coverage\Disassembler\X86DisassemblerDecoder.h" />

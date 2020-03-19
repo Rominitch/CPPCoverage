@@ -61,15 +61,14 @@ namespace NubiloSoft.CoverageExt
 
                     // Create your Process
                     Process process = new Process();
+
+                    // Define filepath to execute
+                    string executable = "Coverage-x64.exe";
                     if (platform == "x86")
                     {
-                        process.StartInfo.FileName = Path.Combine(folder, "Resources\\Coverage-x86.exe");
+                        executable = "Coverage-x86.exe";
                     }
-                    else
-                    {
-                        process.StartInfo.FileName = Path.Combine(folder, "Resources\\Coverage-x64.exe");
-                    }
-
+                    process.StartInfo.FileName = Path.Combine(folder, "Resources", executable);
                     if (!File.Exists(process.StartInfo.FileName))
                     {
                         throw new NotSupportedException("Coverage.exe instance for platform was not found. Expected: " + process.StartInfo.FileName);
@@ -156,7 +155,10 @@ namespace NubiloSoft.CoverageExt
                     process.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
                     process.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
 
-                    process.Start();
+                    if( !process.Start() )
+                    {
+                        throw new Exception("Impossible to launch.");
+                    }
 
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();

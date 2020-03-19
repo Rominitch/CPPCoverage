@@ -42,6 +42,8 @@ namespace NubiloSoft.CoverageExt
 
         public void Clear()
         {
+            //Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
             if (window != null)
             {
                 lock (windowLock)
@@ -54,6 +56,8 @@ namespace NubiloSoft.CoverageExt
 
         public void WriteLine(string format, params object[] par)
         {
+            //Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
             if (window != null)
             {
                 lock (windowLock)
