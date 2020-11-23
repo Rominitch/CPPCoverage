@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 struct RuntimeOptions
 {
@@ -38,9 +39,10 @@ public:
     std::string MergedOutput;
     std::string WorkingDirectory;
 	std::string CodePath;
+	std::string SolutionPath;
 	std::string Executable;
 	std::string ExecutableArguments;
-    std::string Exclude;
+    std::vector<std::string> Excludes;
     bool        Relative;
 
 	std::string SourcePath()

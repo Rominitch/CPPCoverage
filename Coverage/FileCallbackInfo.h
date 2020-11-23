@@ -313,20 +313,31 @@ struct FileCallbackInfo
         std::string reportFilename = filename;
         std::ofstream ofs(reportFilename);
 
+        const auto& exclusion = [&](const std::string& fileName) -> bool
+        {
+            for (const auto& exclude : RuntimeOptions::Instance().Excludes)
+            {
+                if (fileName.find(exclude) != std::string::npos)
+                {
+                    return true;
+                }
+            }
+            return false;
+        };
+
         for (auto& it : lineData)
         {
             // Replace by relative path if code path is fully include inside
             std::string fileName = it.first;
 
             // Check if path is exclude ?
-            if (!RuntimeOptions::Instance().Exclude.empty() && fileName.find(RuntimeOptions::Instance().Exclude) != std::string::npos)
-            {
+            if (exclusion(fileName))
                 continue;
-            }
+            
             // Check if absolute path must be reduce ?
             if (RuntimeOptions::Instance().Relative && fileName.find(RuntimeOptions::Instance().CodePath) != std::string::npos)
             {
-                fileName = relativePath(fileName, RuntimeOptions::Instance().CodePath).string();
+                fileName = relativePath(fileName, RuntimeOptions::Instance().SolutionPath).string();
             }
 
             ofs << "FILE: " << fileName << std::endl;

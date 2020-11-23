@@ -9,17 +9,33 @@
 
 void ShowHelp()
 {
-	std::cout << "Usage: coverage.exe [opts] -- [executable] [optional args]" << std::endl;
+	std::cout << "Usage: Coverage-x64.exe [opts] -- [executable] [optional args]" << std::endl;
+	std::cout << std::endl;
+	std::cout << "Example: Run 2 tests and merge result into single cov" << std::endl;;
+	std::cout << "Coverage-x64.exe -p MyProject -r MyProject/Env -o MyProject/Env/test01.cov -m MyProject/Env/CodeCoverage.cov -w MyProject/Bin -- MyProject/Bin/test01.exe" << std::endl;
+	std::cout << "Coverage-x64.exe -p MyProject -r MyProject/Env -o MyProject/Env/test02.cov -m MyProject/Env/CodeCoverage.cov -w MyProject/Bin -- MyProject/Bin/test02.exe" << std::endl;
+	std::cout << "With folders' architecture:" << std::endl;
+	std::cout << " MyProject" << std::endl;
+	std::cout << "  |- Bin					: Executable to run (test01.exe and test02.exe)" << std::endl;
+	std::cout << "      |- Data             : Data for test" << std::endl;
+	std::cout << "  |- MyCode1" << std::endl;
+	std::cout << "      |- Src				: All cpp" << std::endl;
+	std::cout << "      |- include			: All h" << std::endl;
+    std::cout << "  |- MyCode2" << std::endl;
+    std::cout << "      |- Src				: All cpp" << std::endl;
+    std::cout << "      |- include			: All h" << std::endl;
+	std::cout << "  |- Env" << std::endl;
+	std::cout << "      |- Solution.sln		: My sln" << std::endl;
 	std::cout << std::endl;
 	std::cout << "Options:" << std::endl;
 	std::cout << "  -quiet:        suppress output information from coverage tool" << std::endl;
 	std::cout << "  -format [fmt]: specify 'native' for native coverage format or 'cobertura' for cobertura XML" << std::endl;
 	std::cout << "  -o [name]:     write output information to the given filename" << std::endl;
-	std::cout << "  -p [name]:     assume source code can be found in the given path name (or $(SolutionDir))" << std::endl;
-    std::cout << "  -w [name]:     Working directory where we execute the given executable filename" << std::endl;
-    std::cout << "  -m [name]:     Merge current output to given path name or copy output if not existing" << std::endl;
-    std::cout << "  -r       :     Replace filepath into coverage by relative path based to -p file path. Useful when coverage comes from build server." << std::endl;
-    std::cout << "  -x [name]:     Exclude all files which contains following word (ex: Program Files, C:\\TEST)." << std::endl;
+	std::cout << "  -p [path]:     assume all source code can be found in the given path name" << std::endl;
+    std::cout << "  -w [path]:     Working directory where we execute the given executable filename" << std::endl;
+    std::cout << "  -m [filepath]: Merge current output to given path name or copy output if not existing" << std::endl;
+    std::cout << "  -r [path]:     Replace filepath into coverage by relative path based to solution path given. Useful when coverage comes from build server." << std::endl;
+    std::cout << "  -x [name]:     Exclude all files which contains following word (ex: Program Files, C:\\TEST).Note: word is case sensitive." << std::endl;
 	std::cout << "  -- [name]:     run coverage on the given executable filename" << std::endl;
     std::cout << "Return code:" << std::endl;
     std::cout << "  0:             Success run" << std::endl;
@@ -95,7 +111,7 @@ void ParseCommandLine(int argc, const char **argv)
             }
 
             std::string t(argv[i]);
-            opts.Exclude = t;
+            opts.Excludes.emplace_back(t);
         }
 		else if (s == "-p")
 		{
@@ -144,6 +160,14 @@ void ParseCommandLine(int argc, const char **argv)
 		}
         else if (s == "-r")
         {
+			++i;
+			if (i == argc)
+			{
+				throw std::exception("Unexpected end of parameters. Expected code path name.");
+			}
+
+			std::string t(argv[i]);
+			opts.SolutionPath = t;
             opts.Relative = true;
         }
 		else if (s == "-help")
