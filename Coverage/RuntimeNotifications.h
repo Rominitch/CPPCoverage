@@ -77,19 +77,31 @@ struct RuntimeNotifications
 {
 	std::vector<std::unique_ptr<RuntimeCoverageFilter>> postProcessing;
 
-	std::string Trim(const std::string& t)
+	// trim from start (in place)
+	static inline void ltrim(std::string &s) {
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}));
+	}
+
+	// trim from end (in place)
+	static inline void rtrim(std::string &s) {
+		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}).base(), s.end());
+	}
+
+	static inline std::string Trim(const std::string& t)
 	{
-		std::string s = t;
-		s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-										std::not_fn(std::cref(std::isspace))));
-		s.erase(std::find_if(s.rbegin(), s.rend(),
-							 std::not_fn(std::cref(std::isspace))).base(), s.end());
-		return s;
+		std::string r = t;
+		ltrim(r);
+		rtrim(r);
+		return r;
 	}
 
 	std::string GetFQN(std::string s)
 	{
-		if (s.size() == 0) return s;
+		if (s.empty()) return s;
 
 		if (s.size() > 1 && s[1] == ':')
 		{

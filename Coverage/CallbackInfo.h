@@ -2,6 +2,8 @@
 
 #include "ProcessInfo.h"
 #include "Disassembler/ReachabilityAnalysis.h"
+
+#include <filesystem>
 #include <set>
 #include <vector>
 
@@ -20,7 +22,44 @@ struct CallbackInfo
 	bool registerLines;
 	std::set<PVOID> breakpointsToSet;
 
+	std::filesystem::path compiledReplacePath;	///< Path to original PDB (from compilation)
+	std::filesystem::path finalReplacePath;		///< Path to original PDB (from compilation)
+
 	std::vector<ReachabilityAnalysis> reachableCode;
+
+	void computeCompiledPath(const std::filesystem::path& compiledPDB, const std::filesystem::path& executedPDB)
+	{
+		compiledReplacePath = compiledPDB;
+		finalReplacePath    = executedPDB;
+		
+		while(compiledReplacePath.filename() == finalReplacePath.filename())
+		{
+			// Go to parent
+			compiledReplacePath = compiledReplacePath.parent_path();
+			finalReplacePath    = finalReplacePath.parent_path();
+
+			// Common path
+			if( compiledPDB.root_path() == compiledPDB )
+			{
+				// Disable feature
+				compiledReplacePath.clear();
+				finalReplacePath.clear();
+				return;
+			}
+		}
+	}
+
+	//Compute new absolute path from compiled path
+	std::filesystem::path rebased(const std::filesystem::path& source) const
+	{
+		if (compiledReplacePath.empty())
+			return source;
+		else
+		{
+			auto relative = std::filesystem::relative(source, compiledReplacePath);
+			return std::filesystem::canonical(finalReplacePath / relative);
+		}
+	}
 
 	void SetBreakpoints(PVOID baseAddress, HANDLE process)
 	{

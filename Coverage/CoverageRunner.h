@@ -39,16 +39,18 @@ struct CoverageRunner
 	{
 		CallbackInfo* info = reinterpret_cast<CallbackInfo*>(userContext);
 
-		if (info->fileInfo->PathMatches(lineInfo->FileName))
+		bool val = std::string(lineInfo->FileName).find("Sources") != -1;
+		
+		// Compute source into current folder (can append when PDB was compiled by another machine of this runner).
+		const auto sourceFile = info->rebased(lineInfo->FileName);
+		if (std::filesystem::exists(sourceFile))
 		{
-			auto file = lineInfo->FileName;
-
 			PVOID addr = reinterpret_cast<PVOID>(lineInfo->Address);
 			auto it = info->breakpointsToSet.find(addr);
 			if (it == info->breakpointsToSet.end())
 			{
 				// Find line info
-				auto fileLineInfo = info->fileInfo->LineInfo(file, lineInfo->LineNumber);
+				auto fileLineInfo = info->fileInfo->LineInfo(sourceFile.generic_string(), lineInfo->LineNumber);
 				if (fileLineInfo)
 				{
 					// Only create breakpoint if we haven't already.
@@ -259,9 +261,11 @@ struct CoverageRunner
 
 				// Only register line numbers the first time. On a second load of the same DLL, we only want to set the breakpoints.
 				CallbackInfo ci(&coverageContext, proc, firstTimeLoad);
-
+				
 				if (info)
 				{
+					// Compare loaded and compile PDB path
+					ci.computeCompiledPath(ModuleInfo.CVData, ModuleInfo.LoadedPdbName);
 #ifdef _WIN64
 					IMAGEHLP_SYMBOL64 img;
 #else

@@ -15,9 +15,6 @@
 #include <Windows.h>
 #include <ctime>
 
-// C++ 17
-#include <filesystem>
-
 struct FileCallbackInfo
 {
     FileCallbackInfo(const std::string& filename) :
