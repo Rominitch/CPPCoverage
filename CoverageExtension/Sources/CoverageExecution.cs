@@ -91,7 +91,9 @@ namespace NubiloSoft.CoverageExt
                     argumentBuilder.Append("-o \""+ resultFile + "\" ");
                     if(Settings.isSharable)
                     {
-                        argumentBuilder.Append("-r ");
+                        argumentBuilder.Append("-r \"");
+                        argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));
+                        argumentBuilder.Append("\" ");
                     }
                     argumentBuilder.Append("-p \"");
                     argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));

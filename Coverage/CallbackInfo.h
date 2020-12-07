@@ -3,6 +3,7 @@
 #include "ProcessInfo.h"
 #include "Disassembler/ReachabilityAnalysis.h"
 
+#include <cassert>
 #include <filesystem>
 #include <set>
 #include <vector>
@@ -56,8 +57,15 @@ struct CallbackInfo
 			return source;
 		else
 		{
-			auto relative = std::filesystem::relative(source, compiledReplacePath);
-			return std::filesystem::canonical(finalReplacePath / relative);
+			const auto relative = std::filesystem::relative(source, compiledReplacePath);
+			if( relative.is_relative() && !relative.empty() ) // Check if possible
+			{
+				auto ret = std::filesystem::canonical(finalReplacePath / relative);
+				assert(std::filesystem::is_regular_file(ret));
+				return ret;
+			}
+			else
+				return source;
 		}
 	}
 
