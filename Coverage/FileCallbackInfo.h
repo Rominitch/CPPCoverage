@@ -294,8 +294,13 @@ struct FileCallbackInfo
             // Check if absolute path must be reduce ?
             if (RuntimeOptions::Instance().Relative)
             {
-                fileName = std::filesystem::relative(fileName, RuntimeOptions::Instance().SolutionPath).string();
+                const auto file = std::filesystem::relative(fileName, RuntimeOptions::Instance().SolutionPath);
+                if( !file.empty() )
+                    fileName = file.generic_string();
             }
+
+            // Avoid issue
+            assert(!fileName.empty());
 
             ofs << "FILE: " << fileName << std::endl;
             auto ptr = it.second.get();
