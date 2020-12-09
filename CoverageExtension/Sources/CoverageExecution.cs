@@ -204,6 +204,8 @@ namespace NubiloSoft.CoverageExt
                     // All is ready to change GUI
                     CoverageEnvironment.emitStartCoverage();
 
+                    lastEvent = DateTime.UtcNow;
+
                     if ( !process.Start() )
                     {
                         throw new Exception("Impossible to launch.");
@@ -389,10 +391,9 @@ namespace NubiloSoft.CoverageExt
             finally
             {
                 this.process = null;
-            }
 
-            Data.ReportManagerSingleton.Instance(dte).ResetData();
-            Interlocked.Exchange(ref running, 0);
+                Interlocked.Exchange(ref running, 0);
+            }
 
             // In all case, send finish coverage
             CoverageEnvironment.emitFinishCoverage();

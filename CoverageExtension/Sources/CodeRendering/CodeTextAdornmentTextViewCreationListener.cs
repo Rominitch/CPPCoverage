@@ -51,6 +51,11 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
             this.coverage = new CodeTextAdornment(textView, dte);
             // The adornment will listen to any event that changes the layout (text changes, scrolling, etc)
             //new CodeTextAdornment(textView);
+            textView.Closed += (object sender, System.EventArgs e) =>
+            {
+                this.coverage.Close();
+            };
+            
         }
 
         #endregion

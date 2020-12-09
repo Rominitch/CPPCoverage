@@ -14,6 +14,9 @@ namespace NubiloSoft.CoverageExt.Cobertura
 
             this.activeCoverageReport = null;
             this.activeCoverageFilename = null;
+
+            // Use event
+            CoverageEnvironment.OnFinishCoverage += SlotFinishChanged;
         }
 
         private DTE dte;
@@ -23,6 +26,11 @@ namespace NubiloSoft.CoverageExt.Cobertura
         private string activeCoverageFilename;
 
         private object lockObject = new object();
+
+        private void SlotFinishChanged(object sender, EventArgs e)
+        {
+            CoverageEnvironment.UiInvoke(() => { ResetData(); return true; });
+        }
 
         public ICoverageData UpdateData()
         {

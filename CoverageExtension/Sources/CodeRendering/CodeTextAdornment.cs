@@ -25,7 +25,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
     /// <summary>
     /// CodeTextAdornment places red boxes behind all the "a"s in the editor window
     /// </summary>
-    internal sealed class CodeTextAdornment
+    internal sealed class CodeTextAdornment : IDisposable
     {
         /// <summary>
         /// The layer of the adornment.
@@ -35,7 +35,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         /// <summary>
         /// Text view where the adornment is created.
         /// </summary>
-        private readonly IWpfTextView view;
+        private IWpfTextView view;
 
         internal Brush uncoveredBrush;
         internal Pen   uncoveredPen;
@@ -62,15 +62,30 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
             this.layer = view.GetAdornmentLayer("CodeCoverage");
             this.layer.Opacity = 0.4;
 
-            // listen to events that change the setting properties
-            CoverageEnvironment.OnSettingsChanged += slotSettingsChanged;
-            CoverageEnvironment.OnFinishCoverage  += SlotFinishChanged;
-
-            // Listen to any event that changes the layout (text changes, scrolling, etc)
-            this.view.LayoutChanged += this.OnLayoutChanged;
+            setupEvent(true);
 
             // make sure the brushes are at least initialized once
             InitializeColors();
+        }
+
+        private void setupEvent(bool setup)
+        {
+            if(setup)
+            {
+                // listen to events that change the setting properties
+                CoverageEnvironment.OnSettingsChanged += slotSettingsChanged;
+                CoverageEnvironment.OnFinishCoverage += SlotFinishChanged;
+
+                // Listen to any event that changes the layout (text changes, scrolling, etc)
+                view.LayoutChanged += OnLayoutChanged;
+            }
+            else
+            {
+                // listen to events that change the setting properties
+                CoverageEnvironment.OnSettingsChanged -= slotSettingsChanged;
+                CoverageEnvironment.OnFinishCoverage  -= SlotFinishChanged;
+                view.LayoutChanged                    -= OnLayoutChanged;
+            }
         }
 
         /// <summary>
@@ -364,6 +379,20 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
                     layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, null, lbl, null);
                 }
             }
+        }
+
+        public void Close()
+        {
+            if (view != null)
+            {
+                setupEvent(false);
+                view = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Close();
         }
     }
 }
