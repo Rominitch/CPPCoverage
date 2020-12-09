@@ -300,7 +300,7 @@ struct CoverageRunner
 					if (SymEnumLines(proc->Handle, dllBase, NULL, NULL, SymEnumLinesCallback, &ci))
 					{
 						if (!options.UseStaticCodeAnalysis ||
-							!SymEnumSymbols(proc->Handle, dllBase, NULL, SymEnumSymbolsCallback, &ci) || ci.reachableCode.size() == 0)
+							!SymEnumSymbols(proc->Handle, dllBase, NULL, SymEnumSymbolsCallback, &ci) || ci.reachableCode.empty())
 						{
 							auto err = Util::GetLastErrorAsString();
 							if (!quiet)
@@ -775,11 +775,11 @@ struct CoverageRunner
 
 #if _WIN64
 												STACKFRAME64 stack = { 0 };
-												stack.AddrPC.Offset = threadContextInfo.Rip;    // EIP - Instruction Pointer
+												stack.AddrPC.Offset = threadContextInfo.Rip;    // RIP - Instruction Pointer
 												stack.AddrPC.Mode = AddrModeFlat;
-												stack.AddrFrame.Offset = threadContextInfo.Rsp; // ESP - Stack Pointer
+												stack.AddrFrame.Offset = threadContextInfo.Rbp; // RBP
 												stack.AddrFrame.Mode = AddrModeFlat;
-												stack.AddrStack.Offset = threadContextInfo.Rsp; // ESP - Stack Pointer (again!)
+												stack.AddrStack.Offset = threadContextInfo.Rsp; // RSP - Stack Pointer
 												stack.AddrStack.Mode = AddrModeFlat;
 #else
 												STACKFRAME64 stack = { 0 };
@@ -819,11 +819,12 @@ struct CoverageRunner
 														// Get information from PC
 														if (SymGetLineFromAddr64(process->Handle, stack.AddrPC.Offset, &dwDisplacement, &line))
 														{
-															if (coverageContext.PathMatches(line.FileName))
+															//auto filename = coverageContext.rebased(line.FileName);
+															//if (coverageContext.PathMatches(line.FileName))
 															{
 																std::string filename(line.FileName);
 
-																callStack.push_back(std::make_tuple(filename, line.LineNumber, symbol->Name));
+																callStack.emplace_back(std::make_tuple(filename, line.LineNumber, symbol->Name));
 															}
 														}
 													}

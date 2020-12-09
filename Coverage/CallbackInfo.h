@@ -24,7 +24,7 @@ struct CallbackInfo
 	std::set<PVOID> breakpointsToSet;
 
 	std::filesystem::path compiledReplacePath;	///< Path to original PDB (from compilation)
-	std::filesystem::path finalReplacePath;		///< Path to original PDB (from compilation)
+	std::filesystem::path finalReplacePath;		///< Path to current  EXE (from executable)
 
 	std::vector<ReachabilityAnalysis> reachableCode;
 
@@ -40,7 +40,7 @@ struct CallbackInfo
 			finalReplacePath    = finalReplacePath.parent_path();
 
 			// Common path
-			if( compiledPDB.root_path() == compiledPDB )
+			if( compiledReplacePath.root_path() == compiledReplacePath )
 			{
 				// Disable feature
 				compiledReplacePath.clear();

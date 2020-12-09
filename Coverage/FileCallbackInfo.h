@@ -72,22 +72,6 @@ struct FileCallbackInfo
         std::swap(lineData, newLineData);
     }
 
-    bool PathMatches(const char* filename)
-    {
-        const char* ptr = filename;
-        const char* gt = sourcePath.data();
-        const char* gte = gt + sourcePath.size();
-
-        for (; *ptr && gt != gte; ++ptr, ++gt)
-        {
-            char lhs = tolower(*gt);
-            char rhs = tolower(*ptr);
-            if (lhs != rhs) { return false; }
-        }
-
-        return true;
-    }
-
     FileLineInfo* LineInfo(const std::string& filename, DWORD64 lineNumber)
     {
         auto it = lineData.find(filename);
