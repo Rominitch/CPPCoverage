@@ -7,20 +7,14 @@ namespace NubiloSoft.CoverageExt.Native
 {
     public class NativeReportManager : Data.IReportManager
     {
-        public NativeReportManager(DTE dte)
+        public NativeReportManager() : base()
         {
-            this.dte = dte;
-            this.output = new OutputWindow(dte);
-
             this.activeCoverageReport = null;
             this.activeCoverageFilename = null;
 
             // Use event
-            CoverageEnvironment.OnFinishCoverage += SlotFinishChanged;
+            CoverageEnvironment.OnReportUpdated += SlotFinishChanged;
         }
-
-        private DTE dte;
-        private OutputWindow output;
 
         private Data.ICoverageData activeCoverageReport;
         private string activeCoverageFilename;
@@ -32,7 +26,7 @@ namespace NubiloSoft.CoverageExt.Native
             CoverageEnvironment.UiInvoke(() => { ResetData(); return true; });
         }
 
-        public ICoverageData UpdateData()
+        public override ICoverageData UpdateData()
         {
             // It makes no sense to have multiple instances of our coverage data in our memory, so
             // this is exposed as a singleton. Updating needs concurrency control. It's pretty fast, so 
@@ -46,7 +40,7 @@ namespace NubiloSoft.CoverageExt.Native
             }
         }
 
-        public void ResetData()
+        public override void ResetData()
         {
             lock (lockObject)
             {
@@ -58,9 +52,7 @@ namespace NubiloSoft.CoverageExt.Native
         {
             try
             {
-                string filename = dte.Solution.FileName;
-                string folder = System.IO.Path.GetDirectoryName(filename);
-                string coverageFile = System.IO.Path.Combine(folder, "CodeCoverage.cov");
+                var coverageFile = CoverageEnvironment.coverageFile();
 
                 if (activeCoverageFilename != coverageFile)
                 {
@@ -81,7 +73,7 @@ namespace NubiloSoft.CoverageExt.Native
 
                     if (activeCoverageReport == null)
                     {
-                        output.WriteLine("Updating coverage results from: {0}", coverageFile);
+                        CoverageEnvironment.console.WriteLine("Updating coverage results from: {0}", coverageFile);
                         activeCoverageReport = Load(coverageFile);
                         activeCoverageFilename = coverageFile;
                     }
@@ -99,11 +91,11 @@ namespace NubiloSoft.CoverageExt.Native
             {
                 try
                 {
-                    report = new Native.NativeData(filename, dte, output);
+                    report = new Native.NativeData(filename);
                 }
                 catch (Exception e)
                 {
-                    output.WriteLine("Error loading coverage report: {0}", e.Message);
+                    CoverageEnvironment.console.WriteLine("Error loading coverage report: {0}", e.Message);
                 }
             }
             return report;

@@ -7,10 +7,10 @@ namespace NubiloSoft.CoverageExt.Sources
 {
     class SolutionEvent : IVsSolutionEvents
     {
-        private EnvDTE80.DTE2 dte;
+        private EnvDTE.DTE dte;
         private uint       cookie;
 
-        public SolutionEvent(IVsSolution Solution, EnvDTE80.DTE2 ctxDte)
+        public SolutionEvent(IVsSolution Solution, EnvDTE.DTE ctxDte)
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -64,7 +64,7 @@ namespace NubiloSoft.CoverageExt.Sources
                 string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
 
                 // Configure settings
-                CoverageEnvironment.configureSolution(solutionDir);
+                CoverageEnvironment.configureSolution(dte, solutionDir);
             }
             catch(Exception exp)
             {
@@ -85,7 +85,7 @@ namespace NubiloSoft.CoverageExt.Sources
 
         public int OnAfterCloseSolution(object pUnkReserved)
         {
-            CoverageEnvironment.configureSolution(string.Empty);
+            CoverageEnvironment.configureSolution(dte, string.Empty);
             return VSConstants.S_OK;
         }
     }

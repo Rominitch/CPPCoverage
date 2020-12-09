@@ -48,7 +48,7 @@ namespace NubiloSoft.CoverageExt
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionOpening_string, PackageAutoLoadFlags.BackgroundLoad)]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     [ProvideToolWindow(typeof(NubiloSoft.CoverageExt.CoverageSelector))]
-    [ProvideOptionPage(typeof(CoverageOptionPageGrid), "Code Coverage", "Generals", 0, 0, true)]
+    [ProvideOptionPage(typeof(CoverageOptionPageGrid), "CppCoverage", "Settings", 3110, 3111, true)]
     public sealed class CoverageMenuPackage : AsyncPackage
     {
         /// <summary>
@@ -64,7 +64,7 @@ namespace NubiloSoft.CoverageExt
             Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Build CppCoverage"));
         }
 
-        private EnvDTE80.DTE2  dte;
+        private EnvDTE.DTE     dte;
         private DteInitializer dteInitializer;
         private IVsSolution    solutionService;
         private SolutionEvent  eventSolution;
@@ -91,21 +91,28 @@ namespace NubiloSoft.CoverageExt
                 solutionService = await GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
                 // Get DTE
                 InitializeDTE();
+                
+                // Restore parameters
+                var options = (CoverageOptionPageGrid)GetDialogPage(typeof(CoverageOptionPageGrid));
+                if(options != null)
+                    options.LoadSettingsFromStorage();
 
                 // Add event tracker
-                eventSolution = new SolutionEvent(solutionService, this.dte);
+                eventSolution = new SolutionEvent(solutionService, dte);
 
-                // Build menu
-                await CoverageMenu.InitializeAsync(this, this.dte);
+                // Build menu / dialog
+                await CoverageMenu.InitializeAsync(this, dte as EnvDTE80.DTE2);
+                await NubiloSoft.CoverageExt.CoverageSelectorCommand.InitializeAsync(this);
 
                 // Call auto load
                 eventSolution.OnAfterOpenSolution(null, 0);
+
+                Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "InitializeAsync CppCoverage done"));
             }
             catch(Exception)
             {
                 Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "InitializeAsync Error"));
             }
-            await NubiloSoft.CoverageExt.CoverageSelectorCommand.InitializeAsync(this);
         }
 
         public override IVsAsyncToolWindowFactory GetAsyncToolWindowFactory(Guid toolWindowType)
@@ -135,7 +142,7 @@ namespace NubiloSoft.CoverageExt
         {
             IVsShell shellService;
 
-            this.dte = this.GetService(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE80.DTE2;
+            this.dte = this.GetService(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE.DTE;
 
             if (this.dte == null) // The IDE is not yet fully initialized
             {
@@ -155,6 +162,11 @@ namespace NubiloSoft.CoverageExt
             [DisplayName("Show code coverage")]
             [Description("Should we show the code coverage or not")]
             public bool ShowCodeCoverage { get; set; } = true;
+
+            [Category("Options")]
+            [DisplayName("Verbose")]
+            [Description("Show messages")]
+            public bool Verbose { get; set; } = false;
 
             [Category("Options")]
             [DisplayName("Sharable")]
@@ -208,6 +220,8 @@ namespace NubiloSoft.CoverageExt
                 {
                     return System.Windows.Media.Color.FromArgb(input.A, input.R, input.G, input.B);
                 };
+
+                CoverageEnvironment.Verbose             = Verbose;
 
                 CoverageEnvironment.ShowCodeCoverage    = ShowCodeCoverage;
                 CoverageEnvironment.isSharable          = OptionIsSharable;

@@ -20,7 +20,7 @@ namespace NubiloSoft.CoverageExt.Data
                     {
                         if (CoverageEnvironment.UseNativeCoverageSupport)
                         {
-                            instance = new Native.NativeReportManager(dte);
+                            instance = new Native.NativeReportManager();
                         }
                         else
                         {
@@ -32,5 +32,7 @@ namespace NubiloSoft.CoverageExt.Data
 
             return instance;
         }
+
+        
     }
 }

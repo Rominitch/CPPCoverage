@@ -11,8 +11,6 @@ namespace NubiloSoft.CoverageExt.Native
 
         public Tuple<BitVector, ProfileVector> GetData(string filename)
         {
-            filename = filename.Replace('/', '\\').ToLower();
-
             Tuple<BitVector, ProfileVector> result = null;
             lookup.TryGetValue(filename, out result);
             return result;
@@ -42,7 +40,7 @@ namespace NubiloSoft.CoverageExt.Native
             }
         }
 
-        public NativeData(string filename, DTE dte, OutputWindow output)
+        public NativeData(string filename)
         {
             // Get file date (for modified checks)
             FileDate = new System.IO.FileInfo(filename).LastWriteTimeUtc;
@@ -60,16 +58,16 @@ namespace NubiloSoft.CoverageExt.Native
                         if (!System.IO.Path.IsPathRooted(currentFile))
                         {
                             // Here: we can add a list of ordered registered folders and try to find file inside.
-                            string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
+                            string solutionDir = CoverageEnvironment.solutionPath;
                             currentFile = System.IO.Path.Combine(solutionDir, currentFile);
 
                             if(!System.IO.File.Exists(currentFile))
-                                output.WriteLine("Impossible to find into solution: {0}", currentFile);
+                                CoverageEnvironment.console.WriteLine("Impossible to find into solution: {0}", currentFile);
                         }
 
                         string cov = sr.ReadLine();
 
-                        if (cov.StartsWith("RES: "))
+                        if (cov != null && cov.StartsWith("RES: "))
                         {
                             cov = cov.Substring("RES: ".Length);
 
@@ -95,7 +93,7 @@ namespace NubiloSoft.CoverageExt.Native
                             ProfileVector currentProfile = new Data.ProfileVector(currentVector.Count);
 
                             string prof = sr.ReadLine();
-                            if (prof.StartsWith("PROF: "))
+                            if (prof != null && prof.StartsWith("PROF: "))
                             {
                                 prof = prof.Substring("PROF: ".Length);
                                 int line = 0;
@@ -132,11 +130,11 @@ namespace NubiloSoft.CoverageExt.Native
 
                             try
                             {
-                                lookup.Add(currentFile.ToLower(), new Tuple<BitVector, ProfileVector>(currentVector, currentProfile));
+                                lookup.Add(System.IO.Path.GetFullPath(currentFile), new Tuple<BitVector, ProfileVector>(currentVector, currentProfile));
                             }
                             catch (Exception e)
                             {
-                                output.WriteLine("Error loading coverage report: {0} with key {1}", e.Message, currentFile.ToLower());
+                                CoverageEnvironment.console.WriteLine("Error loading coverage report: {0} with key {1}", e.Message, currentFile.ToLower());
                             }
                         }
                     }
@@ -145,6 +143,8 @@ namespace NubiloSoft.CoverageExt.Native
                     name = sr.ReadLine();
                 }
             }
+
+            CoverageEnvironment.print("Coverage: Report " + filename + " has been properly read: " + lookup.Count + " items found.");
         }
     }
 }

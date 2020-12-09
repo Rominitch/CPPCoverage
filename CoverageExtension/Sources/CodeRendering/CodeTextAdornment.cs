@@ -74,7 +74,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
             {
                 // listen to events that change the setting properties
                 CoverageEnvironment.OnSettingsChanged += slotSettingsChanged;
-                CoverageEnvironment.OnFinishCoverage += SlotFinishChanged;
+                CoverageEnvironment.OnReportUpdated   += SlotFinishChanged;
 
                 // Listen to any event that changes the layout (text changes, scrolling, etc)
                 view.LayoutChanged += OnLayoutChanged;
@@ -83,7 +83,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
             {
                 // listen to events that change the setting properties
                 CoverageEnvironment.OnSettingsChanged -= slotSettingsChanged;
-                CoverageEnvironment.OnFinishCoverage  -= SlotFinishChanged;
+                CoverageEnvironment.OnReportUpdated   -= SlotFinishChanged;
                 view.LayoutChanged                    -= OnLayoutChanged;
             }
         }
@@ -168,51 +168,52 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         private void InitCurrent()
         {
             CoverageState[] currentFile = new CoverageState[0];
-            ProfileVector currentProf = new Data.ProfileVector(0);
+            ProfileVector currentProf   = new Data.ProfileVector(0);
 
-            if (CoverageEnvironment.ShowCodeCoverage)
+            // Check report exists
+            if (CoverageEnvironment.ShowCodeCoverage && CoverageEnvironment.report != null)
             {
-                string activeFilename = GetActiveFilename();
+                string activeFilename = System.IO.Path.GetFullPath(GetActiveFilename());
                 if (activeFilename != null)
                 {
+                    CoverageEnvironment.print("Coverage: Print report on " + activeFilename);
+
                     Tuple<BitVector, ProfileVector> activeReport = null;
                     DateTime activeFileLastWrite = File.GetLastWriteTimeUtc(activeFilename);
 
-                    var dataProvider = Data.ReportManagerSingleton.Instance(dte);
-                    if (dataProvider != null)
+                    if (CoverageEnvironment.report.FileDate >= activeFileLastWrite)
                     {
-                        var coverageData = dataProvider.UpdateData();
-                        if (coverageData != null && activeFilename != null)
+                        CoverageEnvironment.print("Coverage: Report is up to date");
+                        activeReport = CoverageEnvironment.report.GetData(activeFilename);
+
+                        if (activeReport != null)
                         {
-                            if (coverageData.FileDate >= activeFileLastWrite)
+                            CoverageEnvironment.print("Coverage: File is inside report");
+                            currentProf = activeReport.Item2;
+                            currentFile = new CoverageState[activeReport.Item1.Count];
+
+                            foreach (var item in activeReport.Item1.Enumerate())
                             {
-                                activeReport = coverageData.GetData(activeFilename);
+                                if (item.Value)
+                                {
+                                    currentFile[item.Key] = CoverageState.Covered;
+                                }
+                                else
+                                {
+                                    currentFile[item.Key] = CoverageState.Uncovered;
+                                }
                             }
                         }
+                        else
+                            CoverageEnvironment.print("Coverage: File "+ activeFilename + " is not inside report");
                     }
-
-                    if (activeReport != null)
-                    {
-                        currentProf = activeReport.Item2;
-                        currentFile = new CoverageState[activeReport.Item1.Count];
-
-                        foreach (var item in activeReport.Item1.Enumerate())
-                        {
-                            if (item.Value)
-                            {
-                                currentFile[item.Key] = CoverageState.Covered;
-                            }
-                            else
-                            {
-                                currentFile[item.Key] = CoverageState.Uncovered;
-                            }
-                        }
-                    }
+                    else
+                        CoverageEnvironment.print("Coverage: Report is too old compare to file.");
                 }
             }
 
             this.currentCoverage = currentFile;
-            this.currentProfile = currentProf;
+            this.currentProfile  = currentProf;
         }
 
         /// <summary>
@@ -227,7 +228,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
             InitCurrent();
-
+            
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
                 HighlightCoverage(currentCoverage, currentProfile, line);

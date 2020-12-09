@@ -7,7 +7,7 @@ namespace NubiloSoft.CoverageExt.Cobertura
 {
     public class CoberturaReportManager : Data.IReportManager
     {
-        public CoberturaReportManager(DTE dte)
+        public CoberturaReportManager(DTE dte) : base()
         {
             this.dte = dte;
             this.output = new OutputWindow(dte);
@@ -32,7 +32,7 @@ namespace NubiloSoft.CoverageExt.Cobertura
             CoverageEnvironment.UiInvoke(() => { ResetData(); return true; });
         }
 
-        public ICoverageData UpdateData()
+        public override ICoverageData UpdateData()
         {
             // It makes no sense to have multiple instances of our coverage data in our memory, so
             // this is exposed as a singleton. Updating needs concurrency control. It's pretty fast, so 
@@ -46,7 +46,7 @@ namespace NubiloSoft.CoverageExt.Cobertura
             }
         }
 
-        public void ResetData()
+        public override void ResetData()
         {
             lock (lockObject)
             {

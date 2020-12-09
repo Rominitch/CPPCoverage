@@ -262,7 +262,10 @@ namespace NubiloSoft.CoverageExt
                             {
                                 var solutionFolder = System.IO.Path.GetDirectoryName(dte.Solution.FileName);
 
-                                var executor = CoverageEnvironment.launchExecution(dte, outputWindow);
+                                var executor = CoverageEnvironment.runner;
+                                if (executor == null)
+                                    throw new System.Exception("CppCoverage: Impossible to find runner.");
+
                                 executor.Start(
                                     solutionFolder,
                                     platform,
@@ -277,16 +280,16 @@ namespace NubiloSoft.CoverageExt
             }
             catch (NotSupportedException ex)
             {
-                if (outputWindow != null)
+                if (CoverageEnvironment.console != null)
                 {
-                    outputWindow.WriteLine("Error running coverage: {0}", ex.Message);
+                    CoverageEnvironment.console.WriteLine("Error running coverage: {0}", ex.Message);
                 }
             }
             catch (Exception ex)
             {
-                if (outputWindow != null)
+                if (CoverageEnvironment.console != null)
                 {
-                    outputWindow.WriteLine("Unexpected code coverage failure; error: {0}", ex.ToString());
+                    CoverageEnvironment.console.WriteLine("Unexpected code coverage failure; error: {0}", ex.ToString());
                 }
             }
         }
