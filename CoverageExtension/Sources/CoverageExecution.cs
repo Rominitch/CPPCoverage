@@ -12,16 +12,47 @@ namespace NubiloSoft.CoverageExt
         {
             this.dte = dte;
             this.output = output;
+            this.process = null;
+
+            // Event
+            CoverageEnvironment.OnInterruptCoverage += slotInterruption;
         }
 
+        public bool isRunning()
+        {
+            return this.process != null;
+        }
+
+        private Process process;
         private StringBuilder sb = new StringBuilder();
         private StringBuilder tb = new StringBuilder();
         private DateTime lastEvent = DateTime.UtcNow;
+        private string resultFile;
 
         private EnvDTE.DTE dte;
         private OutputWindow output;
 
         private int running = 0;
+        public void slotInterruption(object sender, System.EventArgs e)
+        {
+            if (isRunning())
+            {
+                // End process
+                if( !process.HasExited )
+                    process.Kill();
+            }
+            // Remove result
+            if (File.Exists(resultFile))
+            {
+                File.Delete(resultFile);
+            }
+
+            output.WriteLine("Code coverage aborted.");
+
+            this.process = null;
+
+            CoverageEnvironment.emitFinishCoverage();
+        }
 
         public void Start(string solutionFolder, string platform, string dllFolder, string dllFilename, string workingDirectory, string commandline)
         {
@@ -37,7 +68,14 @@ namespace NubiloSoft.CoverageExt
                 this.output.Clear();
                 this.output.WriteLine("Calculating code coverage...");
 
-                t.Start();
+                try
+                {
+                    t.Start();
+                }
+                catch
+                {
+                    this.process = null;
+                }                
             }
         }
 
@@ -45,11 +83,14 @@ namespace NubiloSoft.CoverageExt
         {
             try
             {
-                if (Settings.UseNativeCoverageSupport)
+                if (CoverageEnvironment.UseNativeCoverageSupport)
                 {
+                    DateTime localDate = DateTime.Now;
+
+                    string time = localDate.ToString("yyyy-MM-dd-HH.MM.ss.fff");
                     // Delete old coverage file
-                    string resultFile = Path.Combine(solutionFolder, "CodeCoverage.tmp.cov");
-                    string defResultFile = Path.Combine(solutionFolder, "CodeCoverage.cov");
+                    resultFile = Path.Combine(CoverageEnvironment.workingCoverageDir, dllFilename + "_" + time + ".cov");
+                    string mergeFile  = Path.Combine(solutionFolder, "CodeCoverage.cov");
                     if (File.Exists(resultFile))
                     {
                         File.Delete(resultFile);
@@ -60,7 +101,7 @@ namespace NubiloSoft.CoverageExt
                     string folder = Path.GetDirectoryName(location);
 
                     // Create your Process
-                    Process process = new Process();
+                    this.process = new Process();
 
                     // Define filepath to execute
                     string executable = "Coverage-x64.exe";
@@ -89,7 +130,7 @@ namespace NubiloSoft.CoverageExt
                     StringBuilder argumentBuilder = new StringBuilder();
 
                     argumentBuilder.Append("-o \""+ resultFile + "\" ");
-                    if(Settings.isSharable)
+                    if(CoverageEnvironment.isSharable)
                     {
                         argumentBuilder.Append("-r \"");
                         argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));
@@ -98,10 +139,13 @@ namespace NubiloSoft.CoverageExt
                     argumentBuilder.Append("-p \"");
                     argumentBuilder.Append(solutionFolder.TrimEnd('\\', '/'));
 
+                    argumentBuilder.Append("\" -m \"");
+                    argumentBuilder.Append(mergeFile.TrimEnd('\\', '/'));
+
                     // Add exclude path
-                    if(Settings.exclude != null)
+                    if (CoverageEnvironment.excludes != null)
                     {
-                        foreach(var exclude in Settings.exclude)
+                        foreach(var exclude in CoverageEnvironment.excludes)
                         {
                             argumentBuilder.Append("\" -x \"" + exclude);
                         }
@@ -157,7 +201,10 @@ namespace NubiloSoft.CoverageExt
                     process.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
                     process.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
 
-                    if( !process.Start() )
+                    // All is ready to change GUI
+                    CoverageEnvironment.emitStartCoverage();
+
+                    if ( !process.Start() )
                     {
                         throw new Exception("Impossible to launch.");
                     }
@@ -166,9 +213,9 @@ namespace NubiloSoft.CoverageExt
                     process.BeginErrorReadLine();
 
                     bool exited = false;
-                    while (!exited && lastEvent.AddMilliseconds(Settings.timeoutCoverage) > DateTime.UtcNow)
+                    while (!exited && lastEvent.AddMilliseconds(CoverageEnvironment.timeoutCoverage) > DateTime.UtcNow)
                     {
-                        exited = process.WaitForExit(Settings.timeoutCoverage);
+                        exited = process.WaitForExit(CoverageEnvironment.timeoutCoverage);
                     }
 
                     if (!exited)
@@ -177,6 +224,9 @@ namespace NubiloSoft.CoverageExt
                         process.Kill();
                         throw new Exception("Creating code coverage timed out. Do you have a locked program or need to change timeout into Options ?");
                     }
+
+                    // Remove now
+                    process = null;
 
                     string output = tb.ToString();
 
@@ -190,16 +240,7 @@ namespace NubiloSoft.CoverageExt
                         throw new Exception("Cannot find test source file " + dllFilename);
                     }
 
-                    if (File.Exists(resultFile))
-                    {
-                        // All fine, update file:
-                        if (File.Exists(defResultFile))
-                        {
-                            File.Delete(defResultFile);
-                        }
-                        File.Move(resultFile, defResultFile);
-                    }
-                    else
+                    if (!File.Exists(resultFile))
                     {
                         this.output.WriteLine("No coverage report generated. Cannot continue.");
                     }
@@ -287,6 +328,9 @@ namespace NubiloSoft.CoverageExt
                     process.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
                     process.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
 
+                    // All is ready to change GUI
+                    CoverageEnvironment.emitStartCoverage();
+
                     process.Start();
 
                     process.BeginOutputReadLine();
@@ -305,11 +349,14 @@ namespace NubiloSoft.CoverageExt
                         throw new Exception("Creating code coverage timed out.");
                     }
 
+                    // Remove now
+                    process = null;
+
                     string output = tb.ToString();
 
                     if (output.Contains("Usage:"))
                     {
-                        throw new Exception("Incorrect command line argument passed to coverage tool");
+                        throw new Exception("Incorrect command line argument passed to coverage tool.");
                     }
 
                     if (output.Contains("Error: the test source file"))
@@ -333,13 +380,22 @@ namespace NubiloSoft.CoverageExt
 
                 }
 
+                this.output.WriteLine("Code coverage finished.");
             }
             catch (Exception ex)
             {
                 output.WriteLine("Uncaught error during coverage execution: {0}", ex.Message);
             }
+            finally
+            {
+                this.process = null;
+            }
+
             Data.ReportManagerSingleton.Instance(dte).ResetData();
             Interlocked.Exchange(ref running, 0);
+
+            // In all case, send finish coverage
+            CoverageEnvironment.emitFinishCoverage();
         }
 
         private void OutputHandler(object sender, DataReceivedEventArgs e)

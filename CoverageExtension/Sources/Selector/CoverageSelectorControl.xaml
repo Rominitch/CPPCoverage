@@ -1,0 +1,44 @@
+﻿<UserControl x:Class="NubiloSoft.CoverageExt.CoverageSelectorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+             Loaded="CoverageSelector_Loaded"
+             Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+             Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+             mc:Ignorable="d"
+             Name="CppCoverageSelectorDlg" GotFocus="CoverageSelector_GotFocus" RequestBringIntoView="CoverageSelector_RequestBringIntoView"
+             d:DesignHeight="200" d:DesignWidth="150">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ToolBarTray IsLocked="True" Grid.Row="0">
+            <ToolBar x:Name="ToolbarCoverage">
+                <Button x:Name="StopCoverage" Content="Stop" IsEnabled="False" ToolTip="Stop current coverage execution." Click="onStop">
+                </Button>
+                <Separator/>
+                <Button x:Name="CleanCoverage" Content="Clean" ToolTip="Clean coverage." Click="onClean"/>
+                <Button x:Name="UpdateCoverage" Content="Update" ToolTip="Manual update coverage list." Click="onUpdate"/>
+            </ToolBar>
+        </ToolBarTray>
+        <ListView x:Name="coverageFiles" Grid.Row="1"
+                  ItemsSource="{Binding FileCollection}"   
+                  SelectedItem="{Binding SelectedFileInfo}" >
+            <ListView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Merge"  Click="ContextMenuMerge" />
+                    <MenuItem Header="Delete" Click="ContextMenuDelete" />
+                </ContextMenu>
+            </ListView.ContextMenu>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Coverage file" DisplayMemberBinding="{Binding Name}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</UserControl>

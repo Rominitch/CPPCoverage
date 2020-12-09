@@ -15,10 +15,10 @@
         defining some of the constants that we will use inside the file. -->
 
   <!--This is the file that defines the IDs for all the commands exposed by VisualStudio. -->
-  <Extern href="stdidcmd.h"/>
+  <Extern href="stdidcmd.h" />
 
   <!--This header contains the command ids for the menus provided by the shell. -->
-  <Extern href="vsshlids.h"/>
+  <Extern href="vsshlids.h" />
 
   <!--The Commands section is where commands, menus, and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
@@ -37,11 +37,11 @@
          must be a menu. -->
     <Groups>
       <Group guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" priority="0x0600">
-        <Parent guid="guidCoverageMenuPackageCmdSet" id="TopLevelMenu"/>
+        <Parent guid="guidCoverageMenuPackageCmdSet" id="TopLevelMenu" />
       </Group>
 
       <Group guid="guidProjectSpecificMenuCmdSet" id="RunCoverageMenuGroup" priority="0x0600">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE"/>
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE" />
       </Group>
     </Groups>
 
@@ -56,21 +56,21 @@
               <CommandFlag>DefaultInvisible</CommandFlag>
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
-      <Button guid="guidCoverageMenuPackageCmdSet" id="CoverageMenuId" priority="0x0100" type="Button">
+      <Button guid="guidCoverageMenuPackageCmdSet" id="SelectorId" priority="0x001" type="Button">
+        <Parent guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" />
+        <Icon guid="guidImages" id="bmpSelector" />
+        <Strings>
+          <ButtonText>Dashboard</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidCoverageMenuPackageCmdSet" id="CoverageMenuId" priority="0x0002" type="Button">
         <Parent guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpReport" />
         <Strings>
           <ButtonText>Show report</ButtonText>
         </Strings>
-      </Button>
-      <Button guid="guidCoverageMenuPackageCmdSet" id="PreferencesId" priority="0x0100" type="Button">
-        <Parent guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" />
-        <Icon guid="guidImages" id="bmpTools" />
-        <Strings>
-          <ButtonText>Options...</ButtonText>
-        </Strings>
-      </Button>
-      <Button guid="guidCoverageMenuPackageCmdSet" id="AboutId" priority="0x0100" type="Button">
+      </Button>      
+      <Button guid="guidCoverageMenuPackageCmdSet" id="AboutId" priority="0x0003" type="Button">
         <Parent guid="guidCoverageMenuPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpTools" />
         <Strings>
@@ -88,6 +88,13 @@
           <ButtonText>Run coverage</ButtonText>
         </Strings>
       </Button>
+      <Button guid="guidCoverageMenuPackageCmdSet" id="cmdidCoverageSelectorCommand" priority="0x0100" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Icon guid="guidImages" id="bmpSelector" />
+        <Strings>
+          <ButtonText>Coverage Dashboard</ButtonText>
+        </Strings>
+      </Button>
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -97,13 +104,12 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="Resources\CoverageIcons.png" usedList="bmpTools, bmpReport"/>
+      <Bitmap guid="guidImages" href="Resources\CoverageIcons.png" usedList="bmpTools, bmpReport, bmpSelector" />
     </Bitmaps>
 
     <Menus>
       <Menu guid="guidCoverageMenuPackageCmdSet" id="TopLevelMenu" priority="0x700" type="Menu">
-        <Parent guid="guidSHLMainMenu"
-                id="IDG_VS_MM_TOOLSADDINS" />
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
         <Strings>
           <ButtonText>CppCoverage</ButtonText>
           <CommandName>CppCoverage</CommandName>
@@ -119,21 +125,23 @@
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidCoverageMenuPackageCmdSet" value="{f35ab8cc-88d2-418f-a169-b48e6ea4c6dc}">
       <IDSymbol name="MyMenuGroup" value="0x1020" />
+      <IDSymbol name="SelectorId" value="0x0104"/>
       <IDSymbol name="CoverageMenuId" value="0x0100" />
-      <IDSymbol name="PreferencesId" value="0x0101" />
       <IDSymbol name="AboutId" value="0x0102" />
       <IDSymbol name="TopLevelMenu" value="0x1021" />
+      <IDSymbol value="4130" name="cmdidCoverageSelectorCommand" />
     </GuidSymbol>
 
     <GuidSymbol name="guidProjectSpecificMenuCmdSet" value="{CAA6399C-8807-43AB-A999-2CA0DB82A56C}">
       <!-- Context menu (Run coverage) -->
       <IDSymbol name="RunCoverageMenuGroup" value="0x2001" />
-      <IDSymbol name="cmdCoverageGenerate" value="0x0103"/>
+      <IDSymbol name="cmdCoverageGenerate" value="0x0103" />
     </GuidSymbol>
     
-    <GuidSymbol name="guidImages" value="{71634924-ea3d-4b56-ab34-1d53e7c3141a}" >
+    <GuidSymbol name="guidImages" value="{71634924-ea3d-4b56-ab34-1d53e7c3141a}">
       <IDSymbol name="bmpTools" value="1" />
       <IDSymbol name="bmpReport" value="2" />
+      <IDSymbol name="bmpSelector" value="3" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>

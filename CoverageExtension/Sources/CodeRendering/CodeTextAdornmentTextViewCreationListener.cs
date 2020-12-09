@@ -23,7 +23,7 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         /// after the selection layer in the Z-order
         /// </summary>
         [Export(typeof(AdornmentLayerDefinition))]
-        [Name("CodeTextAdornment")]
+        [Name("CodeCoverage")]
         [Order(After = PredefinedAdornmentLayers.BraceCompletion, Before = PredefinedAdornmentLayers.Selection)]
         private AdornmentLayerDefinition editorAdornmentLayer;
 

@@ -18,7 +18,7 @@ namespace NubiloSoft.CoverageExt.Data
                 {
                     if (instance == null)
                     {
-                        if (Settings.UseNativeCoverageSupport)
+                        if (CoverageEnvironment.UseNativeCoverageSupport)
                         {
                             instance = new Native.NativeReportManager(dte);
                         }

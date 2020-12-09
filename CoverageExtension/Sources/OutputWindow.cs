@@ -54,6 +54,19 @@ namespace NubiloSoft.CoverageExt
             }
         }
 
+        public void WriteLine(string message)
+        {
+            //Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (window != null)
+            {
+                lock (windowLock)
+                {
+                    window.OutputString(message + "\r\n");
+                }
+            }
+        }
+
         public void WriteLine(string format, params object[] par)
         {
             //Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();

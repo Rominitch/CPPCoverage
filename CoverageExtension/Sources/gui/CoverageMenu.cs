@@ -7,6 +7,7 @@ using NubiloSoft.CoverageExt.Properties;
 using Task = System.Threading.Tasks.Task;
 using NubiloSoft.CoverageExt.Report;
 using Microsoft.VisualStudio.VCProjectEngine;
+using NubiloSoft.CoverageExt.Sources;
 
 namespace NubiloSoft.CoverageExt
 {
@@ -22,6 +23,7 @@ namespace NubiloSoft.CoverageExt
         public const int PreferenceId = 0x0101;
         public const int AboutId      = 0x0102;
         public const int CtxRunId     = 0x0103;
+        public const int SelectorId   = 0x0104;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -45,13 +47,13 @@ namespace NubiloSoft.CoverageExt
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
+            var dashboardID = new CommandID(CommandSet, SelectorId);
+            var dashboardItem = new MenuCommand(this.OnDashBoard, dashboardID);
+            commandService.AddCommand(dashboardItem);
+
             var reportID = new CommandID(CommandSet, ReportId);
             var reportItem = new MenuCommand(this.OnShowReport, reportID);
             commandService.AddCommand(reportItem);
-
-            var preferenceID = new CommandID(CommandSet, PreferenceId);
-            var preferenceItem = new MenuCommand(this.OnShowPreferences, preferenceID);
-            commandService.AddCommand(preferenceItem);
 
             var aboutID = new CommandID(CommandSet, AboutId);
             var aboutItem = new MenuCommand(this.OnShowAbout, aboutID);
@@ -124,31 +126,11 @@ namespace NubiloSoft.CoverageExt
             Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
 
-        private void OnShowPreferences(object sender, EventArgs e)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            Options options = new Options();
-            options.ShowModal();
-            /*
-            // Get the instance number 0 of this tool window. This window is single instance so this instance
-            // is actually the only one.
-            // The last flag is set to true so that if the tool window does not exists it will be created.
-            ToolWindowPane window = this.package.FindToolWindow(typeof(OptionsToolWindow), 0, true);
-            if ((null == window) || (null == window.Frame))
-            {
-                throw new NotSupportedException(Resources.CanNotCreateWindow);
-            }
-
-            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
-            */
-        }
-
         private void OnShowAbout(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            string message = string.Format(CultureInfo.CurrentCulture, "CppCoverage v3.1.0\nVisite https://github.com/atlaste/CPPCoverage \n\nNubiloSoft");
+
+            string message = string.Format(CultureInfo.CurrentCulture, "CppCoverage v"+CoverageEnvironment.version+"\nVisite https://github.com/atlaste/CPPCoverage \n\nNubiloSoft");
             string title = "About";
 
             // Show a message box to prove we were here
@@ -159,6 +141,23 @@ namespace NubiloSoft.CoverageExt
                 OLEMSGICON.OLEMSGICON_INFO,
                 OLEMSGBUTTON.OLEMSGBUTTON_OK,
                 OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+        }
+
+        private void OnDashBoard(object sender, EventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            // Get the instance number 0 of this tool window. This window is single instance so this instance
+            // is actually the only one.
+            // The last flag is set to true so that if the tool window does not exists it will be created.
+            ToolWindowPane window = this.package.FindToolWindow(typeof(CoverageSelector), 0, true);
+            if ((null == window) || (null == window.Frame))
+            {
+                throw new NotSupportedException("Cannot create tool window");
+            }
+
+            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
 
         private EnvDTE80.DTE2 GetDTE()
@@ -263,7 +262,7 @@ namespace NubiloSoft.CoverageExt
                             {
                                 var solutionFolder = System.IO.Path.GetDirectoryName(dte.Solution.FileName);
 
-                                CoverageExecution executor = new CoverageExecution(dte, outputWindow);
+                                var executor = CoverageEnvironment.launchExecution(dte, outputWindow);
                                 executor.Start(
                                     solutionFolder,
                                     platform,

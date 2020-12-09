@@ -12,6 +12,9 @@ using NubiloSoft.CoverageExt.Sources;
 using System.Globalization;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
 
 namespace NubiloSoft.CoverageExt
 {
@@ -44,6 +47,8 @@ namespace NubiloSoft.CoverageExt
     [Guid(CoverageMenuPackage.PackageGuidString)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionOpening_string, PackageAutoLoadFlags.BackgroundLoad)]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
+    [ProvideToolWindow(typeof(NubiloSoft.CoverageExt.CoverageSelector))]
+    [ProvideOptionPage(typeof(CoverageOptionPageGrid), "Code Coverage", "Generals", 0, 0, true)]
     public sealed class CoverageMenuPackage : AsyncPackage
     {
         /// <summary>
@@ -100,6 +105,7 @@ namespace NubiloSoft.CoverageExt
             {
                 Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "InitializeAsync Error"));
             }
+            await NubiloSoft.CoverageExt.CoverageSelectorCommand.InitializeAsync(this);
         }
 
         public override IVsAsyncToolWindowFactory GetAsyncToolWindowFactory(Guid toolWindowType)
@@ -140,6 +146,81 @@ namespace NubiloSoft.CoverageExt
             {
                 this.dteInitializer = null;
             }
+        }
+
+        // Option Page
+        public class CoverageOptionPageGrid : DialogPage
+        {
+            [Category("Options")]
+            [DisplayName("Show code coverage")]
+            [Description("Should we show the code coverage or not")]
+            public bool ShowCodeCoverage { get; set; } = true;
+
+            [Category("Options")]
+            [DisplayName("Sharable")]
+            [Description("Allow to shared the CodeCoverage.cov file to another computer.")]
+            public bool OptionIsSharable { get; set; } = true;
+
+            [Category("Options")]
+            [DisplayName("Excludes")]
+            [Description("List of keyword to find into file path to exclude this file into final coverage file.")]
+            public string OptionExcludes { get; set; } = "";
+
+            [Category("Colors")]
+            [DisplayName("Uncovered Brush")]
+            [Description("Uncovered Brush")]
+            [TypeConverter(typeof(ColorConverter))]
+            public Color UncoveredBrush { get; set; } = Color.FromArgb(0xFF, 0xFF, 0xCF, 0xB8);
+
+            [Category("Colors")]
+            [DisplayName("Uncovered Pen")]
+            [Description("Uncovered Pen")]
+            [TypeConverter(typeof(ColorConverter))]
+            public Color UncoveredPen { get; set; } = Color.FromArgb(0xD0, 0xFF, 0xCF, 0xB8);
+
+            [Category("Colors")]
+            [DisplayName("Covered Brush")]
+            [Description("Covered Brush")]
+            [TypeConverter(typeof(ColorConverter))]
+            public Color CoveredBrush { get; set; } = Color.FromArgb(0xFF, 0xBD, 0xFC, 0xBF);
+
+            [Category("Colors")]
+            [DisplayName("Covered Pen")]
+            [Description("Covered Pen")]
+            [TypeConverter(typeof(ColorConverter))]
+            public Color CoveredPen { get; set; } = Color.FromArgb(0xD0, 0xBD, 0xFC, 0xBF);
+
+            public override void LoadSettingsFromStorage()
+            {
+                base.LoadSettingsFromStorage();
+                UpdateSettings();
+            }
+
+            public override void SaveSettingsToStorage()
+            {
+                base.SaveSettingsToStorage();
+                UpdateSettings();
+            }
+
+            public void UpdateSettings()
+            {
+                Func<Color, System.Windows.Media.Color> convert = (Color input) =>
+                {
+                    return System.Windows.Media.Color.FromArgb(input.A, input.R, input.G, input.B);
+                };
+
+                CoverageEnvironment.ShowCodeCoverage    = ShowCodeCoverage;
+                CoverageEnvironment.isSharable          = OptionIsSharable;
+                CoverageEnvironment.excludes            = OptionExcludes.Split(';').ToList();
+
+                CoverageEnvironment.UncoveredBrushColor = convert(UncoveredBrush);
+                CoverageEnvironment.UncoveredPenColor   = convert(UncoveredPen);
+                CoverageEnvironment.CoveredBrushColor   = convert(CoveredBrush);
+                CoverageEnvironment.CoveredPenColor     = convert(CoveredPen);
+
+                CoverageEnvironment.emitSettingsChanged();
+            }
+
         }
     }
 }

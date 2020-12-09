@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -36,20 +37,10 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         /// </summary>
         private readonly IWpfTextView view;
 
-        /// <summary>
-        /// Adornment brush.
-        /// </summary>
-        private readonly Brush brush;
-
-        /// <summary>
-        /// Adornment pen.
-        /// </summary>
-        private readonly Pen pen;
-
-        private readonly Brush uncoveredBrush;
-        private readonly Pen   uncoveredPen;
-        private readonly Brush coveredBrush;
-        private readonly Pen   coveredPen;
+        internal Brush uncoveredBrush;
+        internal Pen   uncoveredPen;
+        internal Brush coveredBrush;
+        internal Pen   coveredPen;
 
         private EnvDTE.DTE dte;
         private CoverageState[] currentCoverage;
@@ -66,35 +57,51 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
                 throw new ArgumentNullException("view");
             }
 
-            this.layer = view.GetAdornmentLayer("CodeTextAdornment");
-
-            this.dte  = dte;
+            this.dte = dte;
             this.view = view;
+            this.layer = view.GetAdornmentLayer("CodeCoverage");
+            this.layer.Opacity = 0.4;
+
+            // listen to events that change the setting properties
+            CoverageEnvironment.OnSettingsChanged += slotSettingsChanged;
+            CoverageEnvironment.OnFinishCoverage  += SlotFinishChanged;
+
+            // Listen to any event that changes the layout (text changes, scrolling, etc)
             this.view.LayoutChanged += this.OnLayoutChanged;
 
-            // Create the pen and brush to color the box behind the a's
-            /*
-            this.brush = new SolidColorBrush(Color.FromArgb(0x20, 0x00, 0x00, 0xff));
-            this.brush.Freeze();
+            // make sure the brushes are at least initialized once
+            InitializeColors();
+        }
 
-            var penBrush = new SolidColorBrush(Colors.Red);
-            penBrush.Freeze();
-            this.pen = new Pen(penBrush, 0.5);
-            this.pen.Freeze();
-            */
+        /// <summary>
+        /// Acts on change for the settings color(s)
+        /// </summary>
+        /// <param name="sender"></param>
+        private void slotSettingsChanged(object sender, EventArgs e)
+        {
+            InitializeColors();
+            Redraw();
+        }
 
+        private void SlotFinishChanged(object sender, EventArgs e)
+        {
+            CoverageEnvironment.UiInvoke(() => { Redraw(); return true; });
+        }
+
+        private void InitializeColors()
+        {
             // Color for uncovered code:
-            uncoveredBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0xCF, 0xB8));
+            uncoveredBrush = new SolidColorBrush(CoverageEnvironment.UncoveredBrushColor);
             uncoveredBrush.Freeze();
-            var penBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xFF, 0xCF, 0xB8));
+            var penBrush = new SolidColorBrush(CoverageEnvironment.UncoveredPenColor);
             penBrush.Freeze();
             uncoveredPen = new Pen(penBrush, 0.5);
             uncoveredPen.Freeze();
 
             // Color for covered code:
-            coveredBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xBD, 0xFC, 0xBF));
+            coveredBrush = new SolidColorBrush(CoverageEnvironment.CoveredBrushColor);
             coveredBrush.Freeze();
-            penBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xBD, 0xFC, 0xBF));
+            penBrush = new SolidColorBrush(CoverageEnvironment.CoveredPenColor);
             penBrush.Freeze();
             coveredPen = new Pen(penBrush, 0.5);
             coveredPen.Freeze();
@@ -105,12 +112,92 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
             try
             {
-                return dte.ActiveDocument.FullName;
+                if(dte.ActiveDocument != null)
+                    return dte.ActiveDocument.FullName;
             }
             catch
+            {}
+            return null;
+        }
+
+        /// <summary>
+        /// Acts on changes for the settings OnShowCodeCoverage
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Redraw()
+        {
+            try
             {
-                return null;
+                if (CoverageEnvironment.ShowCodeCoverage)
+                {
+                    InitCurrent();
+
+                    foreach (ITextViewLine line in view.TextViewLines)
+                    {
+                        HighlightCoverage(currentCoverage, currentProfile, line);
+                    }
+                }
+                else
+                {
+                    layer.RemoveAllAdornments();
+                }
             }
+            catch
+            { }
+        }
+
+        /// <summary>
+        /// Initializes the current coverage data
+        /// </summary>
+        private void InitCurrent()
+        {
+            CoverageState[] currentFile = new CoverageState[0];
+            ProfileVector currentProf = new Data.ProfileVector(0);
+
+            if (CoverageEnvironment.ShowCodeCoverage)
+            {
+                string activeFilename = GetActiveFilename();
+                if (activeFilename != null)
+                {
+                    Tuple<BitVector, ProfileVector> activeReport = null;
+                    DateTime activeFileLastWrite = File.GetLastWriteTimeUtc(activeFilename);
+
+                    var dataProvider = Data.ReportManagerSingleton.Instance(dte);
+                    if (dataProvider != null)
+                    {
+                        var coverageData = dataProvider.UpdateData();
+                        if (coverageData != null && activeFilename != null)
+                        {
+                            if (coverageData.FileDate >= activeFileLastWrite)
+                            {
+                                activeReport = coverageData.GetData(activeFilename);
+                            }
+                        }
+                    }
+
+                    if (activeReport != null)
+                    {
+                        currentProf = activeReport.Item2;
+                        currentFile = new CoverageState[activeReport.Item1.Count];
+
+                        foreach (var item in activeReport.Item1.Enumerate())
+                        {
+                            if (item.Value)
+                            {
+                                currentFile[item.Key] = CoverageState.Covered;
+                            }
+                            else
+                            {
+                                currentFile[item.Key] = CoverageState.Uncovered;
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.currentCoverage = currentFile;
+            this.currentProfile = currentProf;
         }
 
         /// <summary>
@@ -124,100 +211,87 @@ namespace NubiloSoft.CoverageExt.Sources.CodeRendering
         /// <param name="e">The event arguments.</param>
         internal void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         {
-            CoverageState[] currentFile = new CoverageState[0];
-            ProfileVector currentProf = new Data.ProfileVector(0);
-
-            string activeFilename = GetActiveFilename();
-            if (activeFilename != null)
-            {
-                Tuple<BitVector, ProfileVector> activeReport = null;
-                DateTime activeFileLastWrite = File.GetLastWriteTimeUtc(activeFilename);
-
-                var dataProvider = Data.ReportManagerSingleton.Instance(dte);
-                if (dataProvider != null)
-                {
-                    var coverageData = dataProvider.UpdateData();
-                    if (coverageData != null && activeFilename != null)
-                    {
-                        if (coverageData.FileDate >= activeFileLastWrite)
-                        {
-                            activeReport = coverageData.GetData(activeFilename);
-                        }
-                    }
-                }
-
-                if (activeReport != null)
-                {
-                    currentProf = activeReport.Item2;
-                    currentFile = new CoverageState[activeReport.Item1.Count];
-
-                    foreach (var item in activeReport.Item1.Enumerate())
-                    {
-                        if (item.Value)
-                        {
-                            currentFile[item.Key] = CoverageState.Covered;
-                        }
-                        else
-                        {
-                            currentFile[item.Key] = CoverageState.Uncovered;
-                        }
-                    }
-                }
-            }
-
-            this.currentCoverage = currentFile;
-            this.currentProfile = currentProf;
+            InitCurrent();
 
             foreach (ITextViewLine line in e.NewOrReformattedLines)
             {
                 HighlightCoverage(currentCoverage, currentProfile, line);
             }
-            //             foreach (ITextViewLine line in e.NewOrReformattedLines)
-            //             {
-            //                 this.CreateVisuals(line);
-            //             }
         }
-        
 
-        /// <summary>
-        /// Adds the scarlet box behind the 'a' characters within the given line
-        /// </summary>
-        /// <param name="line">Line to add the adornments</param>
-        /*
-        private void CreateVisuals(ITextViewLine line)
+        private CoverageState[] UpdateCoverageData(List<KeyValuePair<int, int>> data)
         {
-            IWpfTextViewLineCollection textViewLines = this.view.TextViewLines;
-
-            // Loop through each character, and place a box around any 'a'
-            for (int charIndex = line.Start; charIndex < line.End; charIndex++)
+            List<Tuple<int, int, int>> newdata = new List<Tuple<int, int, int>>();
+            foreach (var item in data)
             {
-                if (this.view.TextSnapshot[charIndex] == 'a')
+                int line = item.Key;
+
+                // case 1:
+                //   10: 0
+                //   0xfeefee: 10
+                //   --> 10: #=2, cov=1
+                //
+                // case 2:
+                //   10: 0
+                //   10: 10 
+                //   --> 10: 10.
+                //
+                // case 3:
+                //   10: 0
+                //   12: 2
+                //   --> 10: 0, 12: 2
+
+                if (newdata.Count > 0 && newdata[newdata.Count - 1].Item1 == line)
                 {
-                    SnapshotSpan span = new SnapshotSpan(this.view.TextSnapshot, Span.FromBounds(charIndex, charIndex + 1));
-                    Geometry geometry = textViewLines.GetMarkerGeometry(span);
-                    if (geometry != null)
-                    {
-                        var drawing = new GeometryDrawing(this.brush, this.pen, geometry);
-                        drawing.Freeze();
-
-                        var drawingImage = new DrawingImage(drawing);
-                        drawingImage.Freeze();
-
-                        var image = new Image
-                        {
-                            Source = drawingImage,
-                        };
-
-                        // Align the image with the top of the bounds of the text geometry
-                        Canvas.SetLeft(image, geometry.Bounds.Left);
-                        Canvas.SetTop(image, geometry.Bounds.Top);
-
-                        this.layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, null, image, null);
-                    }
+                    newdata.Add(new Tuple<int, int, int>(item.Key, 1, item.Value > 0 ? 1 : 0));
+                }
+                else if (line >= 0xf00000)
+                {
+                    var last = newdata[newdata.Count - 1];
+                    newdata[newdata.Count - 1] = new Tuple<int, int, int>(last.Item1, last.Item2 + 1, last.Item3 + ((item.Value > 0) ? 1 : 0));
+                }
+                else
+                {
+                    newdata.Add(new Tuple<int, int, int>(item.Key, 1, item.Value > 0 ? 1 : 0));
                 }
             }
+
+            if (newdata.Count == 0)
+            {
+                newdata.Add(new Tuple<int, int, int>(0, 1, 1));
+            }
+
+            newdata.Sort();
+            int max = newdata[newdata.Count - 1].Item1 + 1;
+
+            // Initialize everything to 'covered'.
+            CoverageState[] lines = new CoverageState[max];
+            for (int i = 0; i < lines.Length; ++i)
+            {
+                lines[i] = CoverageState.Covered;
+            }
+
+            int lastline = 0;
+            CoverageState lastState = CoverageState.Covered;
+            foreach (var item in newdata)
+            {
+                for (int i = lastline; i < item.Item1; ++i)
+                {
+                    lines[i] = lastState;
+                }
+
+                lastline = item.Item1;
+                lastState = (item.Item3 == 0) ? CoverageState.Uncovered : (item.Item3 == item.Item2) ? CoverageState.Covered : CoverageState.Partially;
+            }
+
+            for (int i = lastline; i < lines.Length; ++i)
+            {
+                lines[i] = lastState;
+            }
+
+            return lines;
         }
-        */
+
         private void HighlightCoverage(CoverageState[] coverdata, ProfileVector profiledata, ITextViewLine line)
         {
             if (view == null || profiledata == null || line == null || view.TextSnapshot == null) { return; }

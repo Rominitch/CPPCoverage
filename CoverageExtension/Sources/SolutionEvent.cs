@@ -64,9 +64,7 @@ namespace NubiloSoft.CoverageExt.Sources
                 string solutionDir = System.IO.Path.GetDirectoryName(dte.Solution.FullName);
 
                 // Configure settings
-                Settings.solutionPath = solutionDir;
-                // Read file if exists
-                Settings.ReadSettings();
+                CoverageEnvironment.configureSolution(solutionDir);
             }
             catch(Exception exp)
             {
@@ -87,7 +85,7 @@ namespace NubiloSoft.CoverageExt.Sources
 
         public int OnAfterCloseSolution(object pUnkReserved)
         {
-            Settings.solutionPath = string.Empty;
+            CoverageEnvironment.configureSolution(string.Empty);
             return VSConstants.S_OK;
         }
     }
