@@ -37,35 +37,40 @@ struct CoverageRunner
 
 	static BOOL CALLBACK SymEnumLinesCallback(PSRCCODEINFO lineInfo, PVOID userContext)
 	{
-		CallbackInfo* info = reinterpret_cast<CallbackInfo*>(userContext);
-
-		bool val = std::string(lineInfo->FileName).find("Sources") != -1;
-		
-		// Compute source into current folder (can append when PDB was compiled by another machine of this runner).
-		const auto sourceFile = info->rebased(lineInfo->FileName);
-		if (std::filesystem::exists(sourceFile))
+		try
 		{
-			PVOID addr = reinterpret_cast<PVOID>(lineInfo->Address);
-			auto it = info->breakpointsToSet.find(addr);
-			if (it == info->breakpointsToSet.end())
+			CallbackInfo* info = reinterpret_cast<CallbackInfo*>(userContext);
+				
+			// Compute source into current folder (can append when PDB was compiled by another machine of this runner).
+			// Sometime special code arrives ( "predefines C++ type" ) can make throw but OK !
+			const auto sourceFile = info->rebased(lineInfo->FileName);
+			
+			if (std::filesystem::exists(sourceFile))
 			{
-				// Find line info
-				auto fileLineInfo = info->fileInfo->LineInfo(sourceFile.generic_string(), lineInfo->LineNumber);
-				if (fileLineInfo)
+				PVOID addr = reinterpret_cast<PVOID>(lineInfo->Address);
+				auto it = info->breakpointsToSet.find(addr);
+				if (it == info->breakpointsToSet.end())
 				{
-					// Only create breakpoint if we haven't already.
-					if (info->breakpointsToSet.insert(addr).second)
+					// Find line info
+					auto fileLineInfo = info->fileInfo->LineInfo(sourceFile.generic_string(), lineInfo->LineNumber);
+					if (fileLineInfo)
 					{
-						if (info->registerLines)
+						// Only create breakpoint if we haven't already.
+						if (info->breakpointsToSet.insert(addr).second)
 						{
-							fileLineInfo->DebugCount++;
-						}
+							if (info->registerLines)
+							{
+								fileLineInfo->DebugCount++;
+							}
 
-						info->processInfo->breakPoints[addr] = BreakpointData('\0', fileLineInfo);
+							info->processInfo->breakPoints[addr] = BreakpointData('\0', fileLineInfo);
+						}
 					}
 				}
 			}
 		}
+		catch(...)
+		{}
 
 		return TRUE;
 	}

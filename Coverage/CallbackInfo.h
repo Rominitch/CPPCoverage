@@ -60,9 +60,7 @@ struct CallbackInfo
 			const auto relative = std::filesystem::relative(source, compiledReplacePath);
 			if( relative.is_relative() && !relative.empty() ) // Check if possible
 			{
-				auto ret = std::filesystem::canonical(finalReplacePath / relative);
-				assert(std::filesystem::is_regular_file(ret));
-				return ret;
+				return std::filesystem::canonical(finalReplacePath / relative);
 			}
 			else
 				return source;
