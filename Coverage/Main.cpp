@@ -8,9 +8,69 @@
 #include <sstream>
 #include <string>
 
+enum class MergeResult
+{
+  Disabled,
+  Success,
+  Error
+};
+
+RuntimeOptions::ExportFormatType toExportFormat(const std::string& t)
+{
+  if (t == "native")
+  {
+    return RuntimeOptions::Native;
+  }
+  else if (t == "nativeV2")
+  {
+    return RuntimeOptions::NativeV2;
+  }
+  else if (t == "cobertura")
+  {
+    return RuntimeOptions::Cobertura;
+  }
+  else if (t == "clover")
+  {
+    return RuntimeOptions::Clover;
+  }
+  else
+  {
+    throw std::exception("Unsupported export type. Export type should be cobertura or native.");
+  }
+}
+
+MergeResult mergeFile(const RuntimeOptions& opts)
+{
+  // Merge
+  try
+  {
+    if (!opts.MergedOutput.empty())
+    {
+      if (opts.isAtLeastLevel(VerboseLevel::Info))
+      {
+        std::cout << "Merge into " << opts.MergedOutput << std::endl;
+      }
+      auto merge = MergeRunner::createMergeRunner(opts);
+      merge->execute();
+      
+      return MergeResult::Success;
+    }
+  }
+  catch (const std::exception& e)
+  {
+    if (opts.isAtLeastLevel(VerboseLevel::Error))
+    {
+      std::cerr << "Error: " << e.what() << std::endl;
+    }
+    return MergeResult::Error; // Coverage error
+  }
+  return MergeResult::Disabled;
+}
+
 void ShowHelp()
 {
   std::cout << "Usage: coverage.exe [opts] -- [executable] [optional args]" << std::endl;
+  std::cout << "    or coverage.exe mergeOnly [format] [coverageFile] [mergeFile] " << std::endl;
   std::cout << std::endl;
   std::cout << "Options:" << std::endl;
   std::cout << "  -quiet:             Suppress output information from coverage tool. Equivalent to -verbose=none" << std::endl;
@@ -43,7 +103,7 @@ void ShowHelp()
   std::cout << std::endl;
 }
 
-void ParseCommandLine(int argc, const char** argv)
+ int ParseCommandLine(int argc, const char** argv)
 {
   RuntimeOptions& opts = RuntimeOptionsSingleton::Instance();
 
@@ -116,28 +176,7 @@ void ParseCommandLine(int argc, const char** argv)
       {
         throw std::exception("Unexpected end of parameters. Export type should be cobertura or native.");
       }
-
-      std::string t(argv[i]);
-      if (t == "native")
-      {
-        opts.ExportFormat = RuntimeOptions::Native;
-      }
-      else if (t == "nativeV2")
-      {
-        opts.ExportFormat = RuntimeOptions::NativeV2;
-      }
-      else if (t == "cobertura")
-      {
-        opts.ExportFormat = RuntimeOptions::Cobertura;
-      }
-      else if (t == "clover")
-      {
-        opts.ExportFormat = RuntimeOptions::Clover;
-      }
-      else
-      {
-        throw std::exception("Unsupported export type. Export type should be cobertura or native.");
-      }
+      opts.ExportFormat = toExportFormat(std::string(argv[i]));
     }
     else if (s == "-o")
     {
@@ -216,6 +255,20 @@ void ParseCommandLine(int argc, const char** argv)
 
       opts.excludeFilter.emplace_back( std::string(argv[i]) );
     }
+    else if (s == "mergeOnly")
+    {
+      ++i;
+      if (i+3 >= argc)
+      {
+        throw std::exception("Unexpected end of parameters. Expected format, path for coverage and path to merge (overwrite).");
+      }
+      RuntimeOptions localOptions;
+      localOptions.ExportFormat = toExportFormat(std::string(argv[i]));
+      localOptions.OutputFile   = std::string(argv[i + 1]);
+      localOptions.MergedOutput = std::string(argv[i + 2]);
+
+      return (mergeFile(localOptions) == MergeResult::Error) ? 3 : 0;
+    }
     else if (s == "-help")
     {
       ShowHelp();
@@ -265,6 +318,7 @@ void ParseCommandLine(int argc, const char** argv)
     std::cout << "Arguments: " << opts.ExecutableArguments << std::endl;
   }
 #endif
+  return -1;
 }
 
 class UTF8CodePage {
@@ -300,7 +354,13 @@ int main(int argc, const char** argv)
 
   try
   {
-    ParseCommandLine(argc, argv);
+    // Parse command line and manage special case
+    const auto rc = ParseCommandLine(argc, argv);
+    // Check if we already do the job
+    if ( rc != -1)
+    {
+      return rc;
+    }
   }
   catch (const std::exception& e)
   {
@@ -341,26 +401,6 @@ int main(int argc, const char** argv)
     return 2; // Coverage error
   }
 
-  // Merge
-  try
-  {
-    if (!opts.MergedOutput.empty())
-    {
-      if (opts.isAtLeastLevel(VerboseLevel::Info))
-      {
-        std::cout << "Merge into " << opts.MergedOutput << std::endl;
-      }
-      auto merge = MergeRunner::createMergeRunner(opts);
-      merge->execute();
-    }
-  }
-  catch (const std::exception& e)
-  {
-    if (opts.isAtLeastLevel(VerboseLevel::Error))
-    {
-      std::cerr << "Error: " << e.what() << std::endl;
-    }
-    return 3; // Coverage error
-  }
-  return 0;
+  // Merge or quit
+  return mergeFile(opts) == MergeResult::Error ? 3 : 0;
 }
