@@ -168,6 +168,7 @@ void ShowHelp()
       opts.SolutionPath = t;
       if (!std::filesystem::exists(opts.SolutionPath))
         throw std::exception("The solution path provide is not existing.");
+      opts.CodePaths.emplace(opts.SolutionPath);
     }
     else if (s == "-format")
     {
@@ -198,7 +199,7 @@ void ShowHelp()
       }
 
       std::string t(argv[i]);
-      opts.CodePaths.push_back(t);
+      opts.CodePaths.emplace(t);
     }
     else if (s == "-w")
     {
