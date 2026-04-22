@@ -100,6 +100,8 @@ void ShowHelp()
   std::cout << "    Run coverage on myProgram.exe with argument -param 1" << std::endl;
   std::cout << "  coverage.exe -o coverageLocal.cov -m fullcoverage.cov -- myProgram.exe" << std::endl;
   std::cout << "    Run coverage on myProgram.exe and create coverageLocal.cov coverage result and merge this result with anothers into fullcoverage.cov" << std::endl;
+	std::cout << "  coverage.exe mergeOnly nativeV2 coverageLocal.cov fullcoverage.cov" << std::endl;
+	std::cout << "    Run coverage with merge only using coverageLocal.cov and merge this result into fullcoverage.cov" << std::endl;
   std::cout << std::endl;
 }
 
@@ -259,7 +261,7 @@ void ShowHelp()
     else if (s == "mergeOnly")
     {
       ++i;
-      if (i+3 >= argc)
+      if (i+3 > argc)
       {
         throw std::exception("Unexpected end of parameters. Expected format, path for coverage and path to merge (overwrite).");
       }
