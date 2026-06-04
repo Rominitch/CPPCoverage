@@ -47,6 +47,58 @@ struct RuntimeOptions
   std::vector<std::string> excludeFilter;
 
   bool isAtLeastLevel(const VerboseLevel& level) const { return (static_cast<int>(_verboseLevel) & static_cast<int>(level)) == static_cast<int>(level); }
+
+  static ExportFormatType toExportFormat(const std::string& t)
+  {
+    if (t == "native")
+    {
+      return RuntimeOptions::Native;
+    }
+    else if (t == "nativeV2")
+    {
+      return RuntimeOptions::NativeV2;
+    }
+    else if (t == "cobertura")
+    {
+      return RuntimeOptions::Cobertura;
+    }
+    else if (t == "clover")
+    {
+      return RuntimeOptions::Clover;
+    }
+    else
+    {
+      throw std::exception("Unsupported export type. Export type should be cobertura or native.");
+    }
+  }
+
+  static VerboseLevel toVerbosity(const std::string& lvl)
+  {
+    if (lvl == "none")
+    {
+      return VerboseLevel::None;
+    }
+    else if (lvl == "error")
+    {
+      return VerboseLevel::Error;
+    }
+    else if (lvl == "warning")
+    {
+      return VerboseLevel::Warning;
+    }
+    else if (lvl == "info")
+    {
+      return VerboseLevel::Info;
+    }
+    else if (lvl == "trace")
+    {
+      return VerboseLevel::Trace;
+    }
+    else
+    {
+      throw std::exception(std::format("Unsupported verbose level: {0}.", lvl).c_str());
+    }
+  }
 };
 
 struct RuntimeOptionsSingleton : public RuntimeOptions

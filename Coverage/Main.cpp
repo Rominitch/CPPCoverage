@@ -1,3 +1,4 @@
+#include "ConfigurationFile.h"
 #include "CoverageRunner.h"
 #include "RuntimeOptions.h"
 #include "MergeRunner.h"
@@ -14,30 +15,6 @@ enum class MergeResult
   Success,
   Error
 };
-
-RuntimeOptions::ExportFormatType toExportFormat(const std::string& t)
-{
-  if (t == "native")
-  {
-    return RuntimeOptions::Native;
-  }
-  else if (t == "nativeV2")
-  {
-    return RuntimeOptions::NativeV2;
-  }
-  else if (t == "cobertura")
-  {
-    return RuntimeOptions::Cobertura;
-  }
-  else if (t == "clover")
-  {
-    return RuntimeOptions::Clover;
-  }
-  else
-  {
-    throw std::exception("Unsupported export type. Export type should be cobertura or native.");
-  }
-}
 
 MergeResult mergeFile(const RuntimeOptions& opts)
 {
@@ -73,28 +50,29 @@ void ShowHelp()
   std::cout << "    or coverage.exe mergeOnly [format] [coverageFile] [mergeFile] " << std::endl;
   std::cout << std::endl;
   std::cout << "Options:" << std::endl;
-  std::cout << "  -quiet:             Suppress output information from coverage tool. Equivalent to -verbose=none" << std::endl;
-  std::cout << "  -verbose [level]:   Allow to show a level of log. The accepted level flags are: error / warning / info / trace / none. By default is setup to 'trace'" << std::endl;
-  std::cout << "  -format [fmt]:      Specify 'native', 'nativeV2' for native coverage format or 'cobertura' for cobertura XML or 'clover' for Clover" << std::endl;
-  std::cout << "  -o [name]:          Write output information to the given filename" << std::endl;
-  std::cout << "  -p [name]:          Assume source code can be found in the given path name" << std::endl;
-  std::cout << "                      Convert only file under this path (the path to file will be in relative format)." << std::endl;
-  std::cout << "  -w [name]:          Working directory where we execute the given executable filename" << std::endl;
-  std::cout << "  -m [name]:          Merge current output to given path name or copy output if not existing" << std::endl;
-  std::cout << "  -pkg [name]:        Name of package under test (executable or dll)" << std::endl;
-  std::cout << "  -help:              Show help" << std::endl;
-  std::cout << "  -solution [name]:   Convert only file under this path (the path to file will be in relative format)." << std::endl;
-  std::cout << "                      Typical usage is to give sln path of project." << std::endl;
-  std::cout << "                      The flag used to ignore code coverage for directories or files (by the PassToCPPCoverage method)." << std::endl;
+  std::cout << "  -quiet:                 Suppress output information from coverage tool. Equivalent to -verbose=none" << std::endl;
+  std::cout << "  -verbose [level]:       Allow to show a level of log. The accepted level flags are: error / warning / info / trace / none. By default is setup to 'trace'" << std::endl;
+  std::cout << "  -configuration [file]:  Use a file to configure coverage (warning: order is important to otherwrite)" << std::endl;
+  std::cout << "  -format [fmt]:          Specify 'native', 'nativeV2' for native coverage format or 'cobertura' for cobertura XML or 'clover' for Clover" << std::endl;
+  std::cout << "  -o [name]:              Write output information to the given filename" << std::endl;
+  std::cout << "  -p [name]:              Assume source code can be found in the given path name" << std::endl;
+  std::cout << "                          Convert only file under this path (the path to file will be in relative format)." << std::endl;
+  std::cout << "  -w [name]:              Working directory where we execute the given executable filename" << std::endl;
+  std::cout << "  -m [name]:              Merge current output to given path name or copy output if not existing" << std::endl;
+  std::cout << "  -pkg [name]:            Name of package under test (executable or dll)" << std::endl;
+  std::cout << "  -help:                  Show help" << std::endl;
+  std::cout << "  -solution [name]:       Convert only file under this path (the path to file will be in relative format)." << std::endl;
+  std::cout << "                          Typical usage is to give sln path of project." << std::endl;
+  std::cout << "                          The flag used to ignore code coverage for directories or files (by the PassToCPPCoverage method)." << std::endl;
   std::cout << "  -codeanalysis:" << std::endl;
-  std::cout << "  -excludeFile:       Regexp to exclude file of coverage (sometime you can have template fake file)" << std::endl;
-  std::cout << "  -- [name]:          Run coverage on the given executable filename" << std::endl;
+  std::cout << "  -excludeFile:           Regexp to exclude file of coverage (sometime you can have template fake file)" << std::endl;
+  std::cout << "  -- [name]:              Run coverage on the given executable filename" << std::endl;
   std::cout << "Return code:" << std::endl;
-  std::cout << "  0:                  Success run" << std::endl;
-  std::cout << "  1:                  Executable missing" << std::endl;
-  std::cout << "  2:                  Coverage failure" << std::endl;
-  std::cout << "  3:                  Merge failure" << std::endl;
-  std::cout << "  4:                  Application return error code" << std::endl;
+  std::cout << "  0:                      Success run" << std::endl;
+  std::cout << "  1:                      Executable missing" << std::endl;
+  std::cout << "  2:                      Coverage failure" << std::endl;
+  std::cout << "  3:                      Merge failure" << std::endl;
+  std::cout << "  4:                      Application return error code" << std::endl;
   std::cout << "Example:" << std::endl;
   std::cout << "  coverage.exe -- myProgram.exe -param 1" << std::endl;
   std::cout << "    Run coverage on myProgram.exe with argument -param 1" << std::endl;
@@ -128,31 +106,8 @@ void ShowHelp()
       {
         throw std::exception("Unexpected end of parameters. Expected level of verbose.");
       }
-      std::string lvl(argv[i]);
-      if (lvl == "none")
-      {
-        opts._verboseLevel = VerboseLevel::None;
-      }
-      else if (lvl == "error")
-      {
-        opts._verboseLevel = VerboseLevel::Error;
-      }
-      else if (lvl == "warning")
-      {
-        opts._verboseLevel = VerboseLevel::Warning;
-      }
-      else if (lvl == "info")
-      {
-        opts._verboseLevel = VerboseLevel::Info;
-      }
-      else if (lvl == "trace")
-      {
-        opts._verboseLevel = VerboseLevel::Trace;
-      }
-      else
-      {
-        throw std::exception(std::format("Unsupported verbose level: {0}.", lvl).c_str());
-      }
+
+      opts._verboseLevel = RuntimeOptions::toVerbosity(std::string(argv[i]));
     }
     else if (s == "-codeanalysis")
     {
@@ -179,7 +134,7 @@ void ShowHelp()
       {
         throw std::exception("Unexpected end of parameters. Export type should be cobertura or native.");
       }
-      opts.ExportFormat = toExportFormat(std::string(argv[i]));
+      opts.ExportFormat = RuntimeOptions::toExportFormat(std::string(argv[i]));
     }
     else if (s == "-o")
     {
@@ -266,11 +221,21 @@ void ShowHelp()
         throw std::exception("Unexpected end of parameters. Expected format, path for coverage and path to merge (overwrite).");
       }
       RuntimeOptions localOptions;
-      localOptions.ExportFormat = toExportFormat(std::string(argv[i]));
+      localOptions.ExportFormat = RuntimeOptions::toExportFormat(std::string(argv[i]));
       localOptions.OutputFile   = std::string(argv[i + 1]);
       localOptions.MergedOutput = std::string(argv[i + 2]);
 
       return (mergeFile(localOptions) == MergeResult::Error) ? 3 : 0;
+    }
+    else if (s == "configuration")
+    {
+      ++i;
+      if (i > argc)
+      {
+        throw std::exception("Unexpected end of parameters. Expected filepath to configuration.");
+      }
+      ConfigurationFile configuration( argv[i] );
+      configuration.setup(opts);
     }
     else if (s == "-help")
     {

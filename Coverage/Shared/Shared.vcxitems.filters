@@ -13,6 +13,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)..\MergeRunner.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\RuntimeNotifications.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\CoverageRunner.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\ConfigurationFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\base64.h" />
@@ -43,6 +44,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)..\RuntimeOptions.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)..\StackTrace.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)..\Util.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\ConfigurationFile.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)..\.editorconfig" />
