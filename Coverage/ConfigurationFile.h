@@ -18,6 +18,6 @@ public:
 	/// Read configuration and edit available option.
 	/// The others are leaved unchanged.
 	/// </summary>
-	/// <param name="option"></param>
+	/// <param name="option">Option to edit</param>
 	void setup(RuntimeOptions& option);
 };

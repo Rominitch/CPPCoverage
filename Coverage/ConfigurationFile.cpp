@@ -7,6 +7,7 @@
 #include <format>
 #include <fstream>
 #include <regex>
+#include <vector>
 
 static std::string rtrim(const std::string& str, const char* t = " \t\n\r\f\v")
 {
@@ -24,6 +25,13 @@ ConfigurationFile::ConfigurationFile(const std::filesystem::path& file) :
 	}
 }
 
+enum class GroupID : uint8_t
+{
+	Unknown,
+	General,
+	ExcludeFile,
+};
+
 void ConfigurationFile::setup(RuntimeOptions& options)
 {
 	// Open File
@@ -32,6 +40,9 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 	assert(file.is_open());
 
 	std::regex re(R"(^\s*([^=\s]+)\s*=\s*(.+)$)");
+	std::regex reGroup(R"(^\s*\[\s*([^\[\]\s]*)\s*]\s*$)");
+
+	auto group = GroupID::Unknown;
 
 	// Parse file line by line
 	std::string line;
@@ -43,26 +54,60 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 			continue;
 		}
 		
-		// Read mono argument
+		// Try to read group
 		std::smatch base_match;
-		if (std::regex_match(line, base_match, re) && base_match.size() == 2)
+		if (std::regex_match(line, base_match, reGroup) && base_match.size() == 1)
 		{
-			// Remove possible space after value
-			const auto value = rtrim(base_match[1].str());
+			const auto groupStr = base_match[0].str();
 
-			// Check configuration
-			if (base_match[0].str() == "VERBOSITY")
+			if(groupStr == "General")
 			{
-				options._verboseLevel = RuntimeOptions::toVerbosity(value);
+				group = GroupID::General;
 			}
-			else if (base_match[0].str() == "EXPORT_FORMAT")
+			else if (groupStr == "ExcludeFile")
 			{
-					options.ExportFormat = RuntimeOptions::toExportFormat(value);
+				group = GroupID::ExcludeFile;
 			}
 			else
 			{
-				throw std::runtime_error(std::format("Impossible to analyze argument : {0}", base_match[0].str()));
+				throw std::runtime_error(std::format("Impossible to analyze group: {0}", groupStr));
 			}
+			continue;
+		}
+		
+		// Try to make action inside group
+		switch(group)
+		{
+			case GroupID::General:
+			{
+				// Read mono argument
+
+				if (std::regex_match(line, base_match, re) && base_match.size() == 2)
+				{
+					// Remove possible space after value
+					const auto value = rtrim(base_match[1].str());
+
+					// Check configuration
+					if (base_match[0].str() == "VERBOSITY")
+					{
+						options._verboseLevel = RuntimeOptions::toVerbosity(value);
+					}
+					else if (base_match[0].str() == "EXPORT_FORMAT")
+					{
+						options.ExportFormat = RuntimeOptions::toExportFormat(value);
+					}
+					else
+					{
+						throw std::runtime_error(std::format("Impossible to analyze argument: {0}", base_match[0].str()));
+					}
+				}
+			}
+			break;
+			case GroupID::ExcludeFile:
+			{
+				options.excludeFilter.emplace_back(line);
+			}
+			break;
 		}
 	}
 }
