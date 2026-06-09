@@ -6,6 +6,7 @@
 #include <cassert>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <regex>
 #include <vector>
 
@@ -30,6 +31,7 @@ enum class GroupID : uint8_t
 	Unknown,
 	General,
 	ExcludeFile,
+	CodePath,
 };
 
 void ConfigurationFile::setup(RuntimeOptions& options)
@@ -40,7 +42,7 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 	assert(file.is_open());
 
 	std::regex re(R"(^\s*([^=\s]+)\s*=\s*(.+)$)");
-	std::regex reGroup(R"(^\s*\[\s*([^\[\]\s]*)\s*]\s*$)");
+	std::regex reGroup(R"(^\s*\[\s*([^\[\]\s]*)\s*\]\s*$)");
 
 	auto group = GroupID::Unknown;
 
@@ -49,16 +51,16 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 	while (std::getline(file, line))
 	{
 		// Skip comment
-		if (line.starts_with("#"))
+		if (line.empty() || line.starts_with("#"))
 		{
 			continue;
 		}
 		
 		// Try to read group
 		std::smatch base_match;
-		if (std::regex_match(line, base_match, reGroup) && base_match.size() == 1)
+		if (std::regex_match(line, base_match, reGroup) && base_match.size() == 2)
 		{
-			const auto groupStr = base_match[0].str();
+			const auto groupStr = base_match[1].str();
 
 			if(groupStr == "General")
 			{
@@ -67,6 +69,10 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 			else if (groupStr == "ExcludeFile")
 			{
 				group = GroupID::ExcludeFile;
+			}
+			else if (groupStr == "CodePath")
+			{
+				group = GroupID::CodePath;
 			}
 			else
 			{
@@ -82,23 +88,23 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 			{
 				// Read mono argument
 
-				if (std::regex_match(line, base_match, re) && base_match.size() == 2)
+				if (std::regex_match(line, base_match, re) && base_match.size() == 3)
 				{
 					// Remove possible space after value
-					const auto value = rtrim(base_match[1].str());
+					const auto value = rtrim(base_match[2].str());
 
 					// Check configuration
-					if (base_match[0].str() == "VERBOSITY")
+					if (base_match[1].str() == "VERBOSITY")
 					{
 						options._verboseLevel = RuntimeOptions::toVerbosity(value);
 					}
-					else if (base_match[0].str() == "EXPORT_FORMAT")
+					else if (base_match[1].str() == "EXPORT_FORMAT")
 					{
 						options.ExportFormat = RuntimeOptions::toExportFormat(value);
 					}
 					else
 					{
-						throw std::runtime_error(std::format("Impossible to analyze argument: {0}", base_match[0].str()));
+						throw std::runtime_error(std::format("Impossible to analyze argument: {0}", base_match[1].str()));
 					}
 				}
 			}
@@ -106,6 +112,18 @@ void ConfigurationFile::setup(RuntimeOptions& options)
 			case GroupID::ExcludeFile:
 			{
 				options.excludeFilter.emplace_back(line);
+			}
+			break;
+			case GroupID::CodePath:
+			{
+				const auto path = std::filesystem::path(line);
+
+				// Check validity of path (may be avoid to spend time for bad config ?)
+				if (options.isAtLeastLevel(VerboseLevel::Warning) && !std::filesystem::exists(path))
+				{
+					std::cout << "The code path is not found: " << path << std::endl;
+				}
+				options.CodePaths.insert(path);
 			}
 			break;
 		}
