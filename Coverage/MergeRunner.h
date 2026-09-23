@@ -37,8 +37,6 @@ public:
   // Avoid copy constructor
   MergeRunner(const MergeRunner&) = delete;
 
-  // Allow to build good merge runner
-  static std::unique_ptr<MergeRunner> createMergeRunner(const RuntimeOptions& opts);
   void execute();
   
 private:
