@@ -72,12 +72,9 @@ namespace TestFormat
 				}
 				FileCoverageV2::writeFooter(ss);
 
-				// Create reader
-				auto options = RuntimeOptionsSingleton::Instance();
-				options.MergedOutput = filename; /// Dummy valid value
-				options.OutputFile   = filename; /// Dummy valid value
-				options.ExportFormat = RuntimeOptions::ExportFormatType::NativeV2;
-				MergeRunnerV2 runner(options);
+				// Create runner
+				MergeRunnerV2 runner;
+
 				auto dict = runner.createDictionary(filename, ss);
 				const size_t EXPECT_DICT_SIZE = 1;
 				Assert::AreEqual(EXPECT_DICT_SIZE, dict.size());
