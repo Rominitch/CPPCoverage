@@ -4,10 +4,12 @@
 #include "MergeRunner.h"
 
 #include <algorithm>
-#include <iostream>
+#include <filesystem>
 #include <format>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 enum class MergeResult
 {
@@ -16,7 +18,31 @@ enum class MergeResult
   Error
 };
 
-MergeResult mergeFile(const RuntimeOptions& opts)
+RuntimeOptions::ExportFormatType toExportFormat(const std::string& t)
+{
+  if (t == "native")
+  {
+    return RuntimeOptions::Native;
+  }
+  else if (t == "nativeV2")
+  {
+    return RuntimeOptions::NativeV2;
+  }
+  else if (t == "cobertura")
+  {
+    return RuntimeOptions::Cobertura;
+  }
+  else if (t == "clover")
+  {
+    return RuntimeOptions::Clover;
+  }
+  else
+  {
+    throw std::exception("Unsupported export type. Export type should be cobertura or native.");
+  }
+}
+
+MergeResult mergeFile(const RuntimeOptions& opts, const std::vector<std::string>& auxiliaryOutputs = {})
 {
   // Merge
   try
@@ -27,8 +53,33 @@ MergeResult mergeFile(const RuntimeOptions& opts)
       {
         std::cout << "Merge into " << opts.MergedOutput << std::endl;
       }
-      auto merge = MergeRunner::createMergeRunner(opts);
-      merge->execute();
+			MergeRunner merge(opts);
+			merge.execute();
+
+      // Also merge coverage collected by any sibling-bitness helper
+      // processes. When -consolidate was used, auxiliaryOutputs is empty
+      // here because everything has already been folded into our local
+      // output file (which we just merged above).
+      for (const auto& auxFile : auxiliaryOutputs)
+      {
+        if (!std::filesystem::exists(auxFile))
+        {
+          if (opts.isAtLeastLevel(VerboseLevel::Warning))
+          {
+            std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
+          }
+          continue;
+        }
+
+        RuntimeOptions auxOpts = opts;
+        auxOpts.OutputFile = auxFile;
+        if (auxOpts.isAtLeastLevel(VerboseLevel::Info))
+        {
+          std::cout << "Merging auxiliary coverage: " << auxFile << std::endl;
+        }
+        MergeRunner auxMerge(auxOpts);
+        auxMerge.execute();
+      }
       
       return MergeResult::Success;
     }
@@ -65,6 +116,15 @@ void ShowHelp()
   std::cout << "                          Typical usage is to give sln path of project." << std::endl;
   std::cout << "                          The flag used to ignore code coverage for directories or files (by the PassToCPPCoverage method)." << std::endl;
   std::cout << "  -codeanalysis:" << std::endl;
+  std::cout << "  -attach [pid]:          Attach to an already-running process with the given PID instead" << std::endl;
+  std::cout << "                          of launching a new one. The -- <executable> argument becomes" << std::endl;
+  std::cout << "                          optional (it will be derived from the PID when omitted)." << std::endl;
+  std::cout << "                          This is used internally to hand cross-bitness child processes" << std::endl;
+  std::cout << "                          off to the sibling Coverage-x86.exe / Coverage-x64.exe." << std::endl;
+  std::cout << "  -consolidate:           After the run, merge any .cov files produced by sibling-bitness" << std::endl;
+  std::cout << "                          helper processes into the main -o output file and delete them," << std::endl;
+  std::cout << "                          so that you end up with a single coverage file containing both" << std::endl;
+  std::cout << "                          bitnesses. Only supported for -format native / nativeV2." << std::endl;
   std::cout << "  -excludeFile:           Regexp to exclude file of coverage (sometime you can have template fake file)" << std::endl;
   std::cout << "  -- [name]:              Run coverage on the given executable filename" << std::endl;
   std::cout << "Return code:" << std::endl;
@@ -83,7 +143,7 @@ void ShowHelp()
   std::cout << std::endl;
 }
 
- int ParseCommandLine(int argc, const char** argv)
+void ParseCommandLine(int argc, const char** argv)
 {
   RuntimeOptions& opts = RuntimeOptionsSingleton::Instance();
 
@@ -112,6 +172,34 @@ void ShowHelp()
     else if (s == "-codeanalysis")
     {
       opts.UseStaticCodeAnalysis = true;
+    }
+    else if (s == "-consolidate")
+    {
+      opts.ConsolidateAuxiliary = true;
+    }
+    else if (s == "-attach")
+    {
+      ++i;
+      if (i == argc)
+      {
+        throw std::exception("Unexpected end of parameters. Expected PID after -attach.");
+      }
+
+      try
+      {
+        opts.AttachPid = static_cast<DWORD>(std::stoul(argv[i]));
+      }
+      catch (const std::exception&)
+      {
+        throw std::exception("Invalid PID passed to -attach.");
+      }
+
+      if (opts.AttachPid == 0)
+      {
+        throw std::exception("Invalid PID passed to -attach.");
+      }
+
+      opts.Attach = true;
     }
     else if (s == "-solution")
     {
@@ -225,7 +313,7 @@ void ShowHelp()
       localOptions.OutputFile   = std::string(argv[i + 1]);
       localOptions.MergedOutput = std::string(argv[i + 2]);
 
-      return (mergeFile(localOptions) == MergeResult::Error) ? 3 : 0;
+      exit ( (mergeFile(localOptions) == MergeResult::Error) ? 3 : 0);
     }
     else if (s == "configuration")
     {
@@ -255,22 +343,59 @@ void ShowHelp()
     throw std::exception("Merge mode is only for RuntimeOptions::Native or NativeV2 mode.");
   }
 
+  // -consolidate piggy-backs on the Native / NativeV2 merge machinery, so
+  // reject it for formats that can't round-trip through MergeRunner.
+  if ((opts.ExportFormat != RuntimeOptions::Native && opts.ExportFormat != RuntimeOptions::NativeV2) && opts.ConsolidateAuxiliary)
+  {
+    throw std::exception("-consolidate is only supported for -format native or nativeV2.");
+  }
+
   auto idx = cmdLine.find(" -- ");
   if (idx == std::string::npos)
   {
-    throw std::exception("Expected executable filename in command line.");
+    // In -attach mode the executable part is optional. We'll derive the
+    // executable path below via QueryFullProcessImageName on AttachPid.
+    if (!opts.Attach)
+    {
+      throw std::exception("Expected executable filename in command line.");
+    }
   }
-
-  idx += 2;
-  while (idx < cmdLine.size() && cmdLine[idx + 1] == ' ') { ++idx; }
-
-  std::string childCommand = cmdLine.substr(idx + 1);
-  if (childCommand.empty())
+  else
   {
-    throw std::exception("Expected executable filename in command line.");
+    idx += 2;
+    while (idx < cmdLine.size() && cmdLine[idx + 1] == ' ') { ++idx; }
+
+    std::string childCommand = cmdLine.substr(idx + 1);
+    if (childCommand.empty() && !opts.Attach)
+    {
+      throw std::exception("Expected executable filename in command line.");
+    }
+
+    opts.ExecutableArguments = childCommand;
   }
 
-  opts.ExecutableArguments = childCommand;
+  if (opts.Attach && opts.Executable.empty())
+  {
+    // Derive the target executable path from the attach PID so the rest of
+    // the coverage pipeline (package name, output filename, etc.) keeps
+    // working unchanged.
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, opts.AttachPid);
+    if (!hProc)
+    {
+      throw std::exception("Could not open attach-target process to derive executable path.");
+    }
+
+    char pathBuffer[MAX_PATH] = { 0 };
+    DWORD bufSize = MAX_PATH;
+    if (!QueryFullProcessImageNameA(hProc, 0, pathBuffer, &bufSize))
+    {
+      CloseHandle(hProc);
+      throw std::exception("Could not query attach-target executable path.");
+    }
+    CloseHandle(hProc);
+
+    opts.Executable = pathBuffer;
+  }
   /*
   size_t pos = opts.ExecutableArguments.find(opts.Executable);
   opts.ExecutableArguments = opts.ExecutableArguments.substr( pos + opts.Executable.size());
@@ -286,7 +411,6 @@ void ShowHelp()
     std::cout << "Arguments: " << opts.ExecutableArguments << std::endl;
   }
 #endif
-  return -1;
 }
 
 class UTF8CodePage {
@@ -323,12 +447,7 @@ int main(int argc, const char** argv)
   try
   {
     // Parse command line and manage special case
-    const auto rc = ParseCommandLine(argc, argv);
-    // Check if we already do the job
-    if ( rc != -1)
-    {
-      return rc;
-    }
+    ParseCommandLine(argc, argv);
   }
   catch (const std::exception& e)
   {
@@ -341,6 +460,11 @@ int main(int argc, const char** argv)
     ShowHelp();
     return 1; // Command error
   }
+
+  // Auxiliary coverage outputs produced by sibling-bitness CPPCoverage
+  // helpers (see CoverageRunner). Collected from the runner after it exits
+  // so we can fold them into the main output below.
+  std::vector<std::string> auxiliaryOutputs;
 
   try
   {
@@ -357,7 +481,11 @@ int main(int argc, const char** argv)
     {
       // Run
       CoverageRunner debug(opts);
-      if (!debug.Start())
+      bool success = debug.Start();
+
+      auxiliaryOutputs = debug.auxiliaryCoverageOutputs;
+
+      if (!success)
       {
         return 4;
       }
@@ -369,6 +497,86 @@ int main(int argc, const char** argv)
     return 2; // Coverage error
   }
 
+  // Determine the effective local output file (same rule CoverageRunner
+  // uses when -o is omitted). We need it below for consolidation and for
+  // the -m merge step.
+  std::string localOutputFile = opts.OutputFile;
+  if (localOutputFile.empty())
+  {
+    localOutputFile = opts.Executable + ".cov";
+  }
+
+  // Consolidate auxiliary (sibling-bitness) .cov files into our own
+  // output so the user ends up with a single coverage file. We do this
+  // BEFORE the -m merge so that a subsequent merge step only has to fold
+  // one consolidated file into MergedOutput.
+  //
+  // Implementation detail: we reuse MergeRunner by treating each aux file
+  // as OutputFile and our local .cov as MergedOutput. After each call the
+  // combined result lives in our local .cov, and the aux file is deleted.
+  try
+  {
+    if (opts.ConsolidateAuxiliary && !auxiliaryOutputs.empty())
+    {
+      if (!std::filesystem::exists(localOutputFile))
+      {
+        if (opts.isAtLeastLevel(VerboseLevel::Warning))
+        {
+          std::cerr << "Warning: -consolidate requested but the master coverage file is missing: "
+            << localOutputFile << std::endl;
+        }
+      }
+      else
+      {
+        for (const auto& auxFile : auxiliaryOutputs)
+        {
+          if (!std::filesystem::exists(auxFile))
+          {
+            if (opts.isAtLeastLevel(VerboseLevel::Warning))
+            {
+              std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
+            }
+            continue;
+          }
+
+          if (opts.isAtLeastLevel(VerboseLevel::Info))
+          {
+            std::cout << "Consolidating auxiliary coverage into "
+              << localOutputFile << ": " << auxFile << std::endl;
+          }
+
+          {
+            RuntimeOptions auxOpts = opts;
+            auxOpts.OutputFile = auxFile;
+            auxOpts.MergedOutput = localOutputFile;
+            MergeRunner auxMerge(auxOpts);
+            auxMerge.execute();
+          }
+
+          std::error_code ec;
+          std::filesystem::remove(auxFile, ec);
+          if (ec && opts.isAtLeastLevel(VerboseLevel::Warning))
+          {
+            std::cerr << "Warning: failed to remove consolidated aux file "
+              << auxFile << ": " << ec.message() << std::endl;
+          }
+        }
+
+        // Everything has been folded in; don't let the -m step below try
+        // to re-merge the (now-deleted) aux files.
+        auxiliaryOutputs.clear();
+      }
+    }
+  }
+  catch (const std::exception& e)
+  {
+    if (opts.isAtLeastLevel(VerboseLevel::Error))
+    {
+      std::cerr << "Error while consolidating auxiliary coverage: " << e.what() << std::endl;
+    }
+    return 3; // Coverage error
+  }
+
   // Merge or quit
-  return mergeFile(opts) == MergeResult::Error ? 3 : 0;
+  return mergeFile(opts, auxiliaryOutputs) == MergeResult::Error ? 3 : 0;
 }

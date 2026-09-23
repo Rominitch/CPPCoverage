@@ -3,14 +3,49 @@
 #include "MergeRunnerV1.h"
 #include "MergeRunnerV2.h"
 
-std::unique_ptr<MergeRunner> MergeRunner::createMergeRunner(const RuntimeOptions& opts)
+MergeRunner::MergeRunner(const RuntimeOptions& opts) :
+  options(opts)
 {
+  assert(!options.MergedOutput.empty());
+  assert(!options.OutputFile.empty());
+
   switch (opts.ExportFormat)
   {
     case RuntimeOptions::Native:
-      return std::make_unique<MergeRunnerV1>(opts);
+      runner = std::make_unique<MergeRunnerV1>();
+      break;
     case RuntimeOptions::NativeV2:
-      return std::make_unique<MergeRunnerV2>(opts);
+      runner = std::make_unique<MergeRunnerV2>();
+      break;
+    default:
+      throw std::runtime_error("This format does not support merge feature !");
   }
-  throw std::runtime_error("This format does not support merge feature !");
+}
+
+void MergeRunner::execute()
+{
+  const std::filesystem::path outputPath(options.OutputFile);
+  const std::filesystem::path mergedPath(options.MergedOutput);
+
+  // Check we have data
+  if (!std::filesystem::exists(outputPath))
+  {
+    const std::string msg = "Merge failure: Impossible to find output file: " + options.OutputFile;
+    throw std::exception(msg.c_str());
+  }
+
+  // Nothing to merge = Copy and quit
+  if (!std::filesystem::exists(mergedPath))
+  {
+    std::filesystem::copy(outputPath, mergedPath);
+    return;
+  }
+
+  // ---- Make merge ---------------------------------------------------------------
+  // Step 1: Merge two output
+  runner->merge(options.MergedOutput, options.OutputFile);
+
+  // Step 2: Write result to file
+  std::ofstream mergeFile(options.MergedOutput.c_str());
+  runner->saveResultToStream(mergeFile);
 }

@@ -13,9 +13,7 @@ namespace TestFormat
   class TestNativeV2;
 }
 
-
-
-class MergeRunnerV2 : public MergeRunner
+class MergeRunnerV2 : public IMergeRunner
 {
 public:
   friend class TestFormat::TestNativeV2;
@@ -199,6 +197,7 @@ private:
     return dictOutput;
   }
 
+
   DictCoverage::iterator findMainDirectory(const DictCoverage::const_iterator& itDirOutput, DictCoverage& dictMerge)
   {
     // Search is folder exists
@@ -215,7 +214,7 @@ private:
     return itDirMerge;
   }
 
-  void merge(const DictCoverage& dictOutput, DictCoverage& dictMerge)
+  void merge(const DictCoverage& dictOutput)
   {
     // Parsing Output
     auto itDirOutput = dictOutput.cbegin();
@@ -253,13 +252,17 @@ private:
     }
   }
 
+  DictCoverage dictMerge;
 public:
-  /// Constructor
-  /// \param[in] opts: application option. Need MergedOutput and OutputFile valid and defined + ExportFormat MUST BE Native.
-  MergeRunnerV2(const RuntimeOptions& opts) :
-    MergeRunner(opts)
+  explicit MergeRunnerV2()
+  {}
+
+  void merge(const std::string& mergedFile, const std::string& outputFile) override
   {
-    assert(_options.ExportFormat == RuntimeOptions::NativeV2); // Support only this !
+    dictMerge = makeDictionary(mergedFile);
+    DictCoverage dictOutput = makeDictionary(outputFile);
+
+    merge(dictOutput);
   }
 
   std::unique_ptr<CoverageResult> read( const std::filesystem::path& path ) const override
@@ -269,58 +272,27 @@ public:
     return result;
   }
 
-  /// Run merge
-  void execute() override
+  void saveResultToStream(std::ostream& outputStream) override
   {
-    std::filesystem::path outputPath(_options.OutputFile);
-    std::filesystem::path mergedPath(_options.MergedOutput);
-
-    // Check we have data
-    if (!std::filesystem::exists(outputPath))
-    {
-      const std::string msg = "Merge failure: Impossible to find output file: " + _options.OutputFile;
-      throw std::exception(msg.c_str());
-    }
-
-    // Nothing to merge = Copy and quit
-    if (!std::filesystem::exists(mergedPath))
-    {
-      std::filesystem::copy(outputPath, mergedPath);
-      return;
-    }
-
-    // ---- Make merge ---------------------------------------------------------------
-    // Step 1: Parse output files and define a dictionary
-    DictCoverage dictOutput = makeDictionary(_options.OutputFile);
-    DictCoverage dictMerge  = makeDictionary(_options.MergedOutput);
-
-    // Step 2: Parse merge
-    merge(dictOutput, dictMerge);
-
-    // Step 3: Write dictionary (on empty file)
-    std::ofstream ofs(_options.MergedOutput);
-
-    FileCoverageV2::writeHeader(ofs);
+    FileCoverageV2::writeHeader(outputStream);
 
     for (const auto& directories : dictMerge)
     {
       const auto& dirName = directories.first;
       if (!dirName.empty())
       {
-        FileCoverageV2::openDirectory(ofs, directories.second._isSolutionFolder, dirName);
+        FileCoverageV2::openDirectory(outputStream, directories.second._isSolutionFolder, dirName);
       }
       for (const auto& cover : directories.second._coverages)
       {
-        cover.second.write(cover.first, ofs);
+        cover.second.write(cover.first, outputStream);
       }
       if (!dirName.empty())
       {
-        FileCoverageV2::closeDirectory(ofs);
+        FileCoverageV2::closeDirectory(outputStream);
       }
     }
 
-    FileCoverageV2::writeFooter(ofs);
-
-    ofs.close();
+    FileCoverageV2::writeFooter(outputStream);
   }
 };

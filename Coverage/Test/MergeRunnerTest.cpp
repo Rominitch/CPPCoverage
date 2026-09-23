@@ -36,49 +36,52 @@ namespace TestMerge
     {
       const std::filesystem::path workingDir = std::filesystem::current_path().parent_path().parent_path();
 
-      const std::filesystem::path output1 = workingDir / "DataTest" / "Test1_UT.tmp.cov";
-      const std::filesystem::path output2 = workingDir / "DataTest" / "Test2_UT.tmp.cov";
+      const std::filesystem::path output1 =  std::filesystem::absolute( workingDir / "DataTest" / "Test1_UT.tmp.cov");
+      const std::filesystem::path output2 =  std::filesystem::absolute( workingDir / "DataTest" / "Test2_UT.tmp.cov");
       const std::filesystem::path merged("./Outputs/Merged.cov");
       std::filesystem::remove_all(merged.parent_path());
       std::filesystem::create_directories(merged.parent_path());
 
       Assert::IsFalse( std::filesystem::exists(merged) );
 
-      RuntimeOptions options;
-      options.ExportFormat = RuntimeOptions::ExportFormatType::NativeV2;
-      options.MergedOutput = std::filesystem::absolute(merged).string();
-      options.OutputFile   = std::filesystem::absolute(output1).string();
+			RuntimeOptions options;
+			options.ExportFormat = RuntimeOptions::ExportFormatType::NativeV2;
+			options.MergedOutput = merged.string();
+			options.OutputFile   = output1.string();
 
       // Merge on empty file
       {
-        auto merge = MergeRunner::createMergeRunner(options);
         try
         {
-          merge->execute();
+          MergeRunner merge(options);
+					merge.execute();
         }
         catch (...)
         {
           Assert::Fail();
         }
-        const auto result = merge->read(options.MergedOutput);
+        MergeRunnerV2 runner;
+        const auto result = runner.read(merged);
         Assert::AreEqual(7ull, result->nbCoveredFile());
       }
 
       Assert::IsTrue(std::filesystem::exists(merged));
-      options.OutputFile = output2.string();
 
       // Merge with something
       {
-        auto merge = MergeRunner::createMergeRunner(options);
+        options.OutputFile = output2.string();
+
         try
         {
-          merge->execute();
+					MergeRunner merge(options);
+					merge.execute();
         }
         catch (...)
         {
           Assert::Fail();
         }
-        const auto result = merge->read(options.MergedOutput);
+        MergeRunnerV2 runner;
+        const auto result = runner.read(merged);
         Assert::AreEqual(10ull,  result->nbCoveredFile());
         Assert::AreEqual(131ull, result->nbLineCovered(std::filesystem::path("lib/TestM/B.h")));
       }
@@ -91,8 +94,8 @@ namespace TestMerge
 		{
 			const std::filesystem::path workingDir = std::filesystem::current_path().parent_path().parent_path();
 
-			const std::filesystem::path output1 = workingDir / "DataTest" / "MergeOtherPath1_UT.cov";
-			const std::filesystem::path output2 = workingDir / "DataTest" / "MergeOtherPath2_UT.cov";
+			const std::filesystem::path output1 = std::filesystem::absolute(workingDir / "DataTest" / "MergeOtherPath1_UT.cov");
+			const std::filesystem::path output2 = std::filesystem::absolute(workingDir / "DataTest" / "MergeOtherPath2_UT.cov");
 			const std::filesystem::path merged("./Outputs/Merged.cov");
 			std::filesystem::remove_all(merged.parent_path());
 			std::filesystem::create_directories(merged.parent_path());
@@ -102,20 +105,21 @@ namespace TestMerge
 			RuntimeOptions options;
 			options.ExportFormat = RuntimeOptions::ExportFormatType::NativeV2;
 			options.MergedOutput = std::filesystem::absolute(merged).string();
-			options.OutputFile = std::filesystem::absolute(output1).string();
+			options.OutputFile   = std::filesystem::absolute(output1).string();
 
 			// Merge on empty file
 			{
-				auto merge = MergeRunner::createMergeRunner(options);
 				try
 				{
-					merge->execute();
+					MergeRunner merge(options);
+					merge.execute();
 				}
 				catch (...)
 				{
 					Assert::Fail();
 				}
-				const auto result = merge->read(options.MergedOutput);
+				MergeRunnerV2 runner;
+				const auto result = runner.read(merged);
 				Assert::AreEqual(2ull,   result->nbFolders());
 				Assert::AreEqual(8ull,   result->nbCoveredFile());
 			}
@@ -125,16 +129,17 @@ namespace TestMerge
 
 			// Merge with something
 			{
-				auto merge = MergeRunner::createMergeRunner(options);
 				try
 				{
-					merge->execute();
+					MergeRunner merge(options);
+					merge.execute();
 				}
 				catch (...)
 				{
 					Assert::Fail();
 				}
-				const auto result = merge->read(options.MergedOutput);
+				MergeRunnerV2 runner;
+				const auto result = runner.read(merged);
 				Assert::AreEqual(3ull, result->nbFolders());
 				Assert::AreEqual(12ull, result->nbCoveredFile());
 				Assert::AreEqual(131ull, result->nbLineCovered(std::filesystem::path("lib/TestM/B.h")));
