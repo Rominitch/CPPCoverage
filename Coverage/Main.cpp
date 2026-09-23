@@ -10,9 +10,94 @@
 #include <string>
 #include <vector>
 
+enum class MergeResult
+{
+  Disabled,
+  Success,
+  Error
+};
+
+RuntimeOptions::ExportFormatType toExportFormat(const std::string& t)
+{
+  if (t == "native")
+  {
+    return RuntimeOptions::Native;
+  }
+  else if (t == "nativeV2")
+  {
+    return RuntimeOptions::NativeV2;
+  }
+  else if (t == "cobertura")
+  {
+    return RuntimeOptions::Cobertura;
+  }
+  else if (t == "clover")
+  {
+    return RuntimeOptions::Clover;
+  }
+  else
+  {
+    throw std::exception("Unsupported export type. Export type should be cobertura or native.");
+  }
+}
+
+MergeResult mergeFile(const RuntimeOptions& opts, const std::vector<std::string>& auxiliaryOutputs = {})
+{
+  // Merge
+  try
+  {
+    if (!opts.MergedOutput.empty())
+    {
+      if (opts.isAtLeastLevel(VerboseLevel::Info))
+      {
+        std::cout << "Merge into " << opts.MergedOutput << std::endl;
+      }
+			MergeRunner merge(opts);
+			merge.execute();
+
+      // Also merge coverage collected by any sibling-bitness helper
+      // processes. When -consolidate was used, auxiliaryOutputs is empty
+      // here because everything has already been folded into our local
+      // output file (which we just merged above).
+      for (const auto& auxFile : auxiliaryOutputs)
+      {
+        if (!std::filesystem::exists(auxFile))
+        {
+          if (opts.isAtLeastLevel(VerboseLevel::Warning))
+          {
+            std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
+          }
+          continue;
+        }
+
+        RuntimeOptions auxOpts = opts;
+        auxOpts.OutputFile = auxFile;
+        if (auxOpts.isAtLeastLevel(VerboseLevel::Info))
+        {
+          std::cout << "Merging auxiliary coverage: " << auxFile << std::endl;
+        }
+        MergeRunner auxMerge(auxOpts);
+        auxMerge.execute();
+      }
+      
+      return MergeResult::Success;
+    }
+  }
+  catch (const std::exception& e)
+  {
+    if (opts.isAtLeastLevel(VerboseLevel::Error))
+    {
+      std::cerr << "Error: " << e.what() << std::endl;
+    }
+    return MergeResult::Error; // Coverage error
+  }
+  return MergeResult::Disabled;
+}
+
 void ShowHelp()
 {
   std::cout << "Usage: coverage.exe [opts] -- [executable] [optional args]" << std::endl;
+  std::cout << "    or coverage.exe mergeOnly [format] [coverageFile] [mergeFile] " << std::endl;
   std::cout << std::endl;
   std::cout << "Options:" << std::endl;
   std::cout << "  -quiet:             Suppress output information from coverage tool. Equivalent to -verbose=none" << std::endl;
@@ -51,6 +136,8 @@ void ShowHelp()
   std::cout << "    Run coverage on myProgram.exe with argument -param 1" << std::endl;
   std::cout << "  coverage.exe -o coverageLocal.cov -m fullcoverage.cov -- myProgram.exe" << std::endl;
   std::cout << "    Run coverage on myProgram.exe and create coverageLocal.cov coverage result and merge this result with anothers into fullcoverage.cov" << std::endl;
+	std::cout << "  coverage.exe mergeOnly nativeV2 coverageLocal.cov fullcoverage.cov" << std::endl;
+	std::cout << "    Run coverage with merge only using coverageLocal.cov and merge this result into fullcoverage.cov" << std::endl;
   std::cout << std::endl;
 }
 
@@ -156,28 +243,7 @@ void ParseCommandLine(int argc, const char** argv)
       {
         throw std::exception("Unexpected end of parameters. Export type should be cobertura or native.");
       }
-
-      std::string t(argv[i]);
-      if (t == "native")
-      {
-        opts.ExportFormat = RuntimeOptions::Native;
-      }
-      else if (t == "nativeV2")
-      {
-        opts.ExportFormat = RuntimeOptions::NativeV2;
-      }
-      else if (t == "cobertura")
-      {
-        opts.ExportFormat = RuntimeOptions::Cobertura;
-      }
-      else if (t == "clover")
-      {
-        opts.ExportFormat = RuntimeOptions::Clover;
-      }
-      else
-      {
-        throw std::exception("Unsupported export type. Export type should be cobertura or native.");
-      }
+      opts.ExportFormat = toExportFormat(std::string(argv[i]));
     }
     else if (s == "-o")
     {
@@ -255,6 +321,20 @@ void ParseCommandLine(int argc, const char** argv)
       }
 
       opts.excludeFilter.emplace_back( std::string(argv[i]) );
+    }
+    else if (s == "mergeOnly")
+    {
+      ++i;
+      if (i+3 > argc)
+      {
+        throw std::exception("Unexpected end of parameters. Expected format, path for coverage and path to merge (overwrite).");
+      }
+      RuntimeOptions localOptions;
+      localOptions.ExportFormat = toExportFormat(std::string(argv[i]));
+      localOptions.OutputFile   = std::string(argv[i + 1]);
+      localOptions.MergedOutput = std::string(argv[i + 2]);
+
+      exit ( (mergeFile(localOptions) == MergeResult::Error) ? 3 : 0);
     }
     else if (s == "-help")
     {
@@ -377,6 +457,7 @@ int main(int argc, const char** argv)
 
   try
   {
+    // Parse command line and manage special case
     ParseCommandLine(argc, argv);
   }
   catch (const std::exception& e)
@@ -507,54 +588,6 @@ int main(int argc, const char** argv)
     return 3; // Coverage error
   }
 
-  // Merge
-  try
-  {
-    if (!opts.MergedOutput.empty())
-    {
-      if (opts.isAtLeastLevel(VerboseLevel::Info))
-      {
-        std::cout << "Merge into " << opts.MergedOutput << std::endl;
-      }
-
-      {
-        MergeRunner merge(opts);
-        merge.execute();
-      }
-
-      // Also merge coverage collected by any sibling-bitness helper
-      // processes. When -consolidate was used, auxiliaryOutputs is empty
-      // here because everything has already been folded into our local
-      // output file (which we just merged above).
-      for (const auto& auxFile : auxiliaryOutputs)
-      {
-        if (!std::filesystem::exists(auxFile))
-        {
-          if (opts.isAtLeastLevel(VerboseLevel::Warning))
-          {
-            std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
-          }
-          continue;
-        }
-
-        RuntimeOptions auxOpts = opts;
-        auxOpts.OutputFile = auxFile;
-        if (auxOpts.isAtLeastLevel(VerboseLevel::Info))
-        {
-          std::cout << "Merging auxiliary coverage: " << auxFile << std::endl;
-        }
-        MergeRunner auxMerge(auxOpts);
-        auxMerge.execute();
-      }
-    }
-  }
-  catch (const std::exception& e)
-  {
-    if (opts.isAtLeastLevel(VerboseLevel::Error))
-    {
-      std::cerr << "Error: " << e.what() << std::endl;
-    }
-    return 3; // Coverage error
-  }
-  return 0;
+  // Merge or quit
+  return mergeFile(opts, auxiliaryOutputs) == MergeResult::Error ? 3 : 0;
 }
