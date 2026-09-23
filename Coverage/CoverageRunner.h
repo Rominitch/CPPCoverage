@@ -393,7 +393,7 @@ struct CoverageRunner
     }
     for (const auto& codePath : options.CodePaths)
     {
-      cmd += " -p " + QuoteArg(codePath);
+      cmd += " -p " + QuoteArg(codePath.string());
     }
     if (!options.SolutionPath.empty())
     {

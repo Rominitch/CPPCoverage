@@ -44,41 +44,38 @@ namespace TestMerge
 
       Assert::IsFalse( std::filesystem::exists(merged) );
 
-      RuntimeOptions options;
-      options.ExportFormat = RuntimeOptions::ExportFormatType::NativeV2;
-      options.MergedOutput = std::filesystem::absolute(merged).string();
-      options.OutputFile   = std::filesystem::absolute(output1).string();
-
       // Merge on empty file
       {
-        auto merge = MergeRunner::createMergeRunner(options);
+        const auto output = std::filesystem::absolute(output1);
+        MergeRunnerV2 merge;
         try
         {
-          merge->execute();
+          merge.merge(std::filesystem::absolute(merged).string(), output.string());
         }
         catch (...)
         {
           Assert::Fail();
         }
-        const auto result = merge->read(options.MergedOutput);
+        const auto result = merge.read(output);
         Assert::AreEqual(7ull, result->nbCoveredFile());
       }
 
       Assert::IsTrue(std::filesystem::exists(merged));
-      options.OutputFile = output2.string();
 
       // Merge with something
       {
-        auto merge = MergeRunner::createMergeRunner(options);
+        const auto output = std::filesystem::absolute(output2);
+        MergeRunnerV2 merge;
+
         try
         {
-          merge->execute();
+          merge.merge(std::filesystem::absolute(merged).string(), output.string());
         }
         catch (...)
         {
           Assert::Fail();
         }
-        const auto result = merge->read(options.MergedOutput);
+        const auto result = merge.read(output);
         Assert::AreEqual(10ull,  result->nbCoveredFile());
         Assert::AreEqual(131ull, result->nbLineCovered(std::filesystem::path("lib/TestM/B.h")));
       }

@@ -197,6 +197,7 @@ private:
     return dictOutput;
   }
 
+
   DictCoverage::iterator findMainDirectory(const DictCoverage::const_iterator& itDirOutput, DictCoverage& dictMerge)
   {
     // Search is folder exists
@@ -253,7 +254,8 @@ private:
 
   DictCoverage dictMerge;
 public:
-  explicit MergeRunnerV2() = default;
+  explicit MergeRunnerV2()
+  {}
 
   void merge(const std::string& mergedFile, const std::string& outputFile) override
   {
@@ -270,39 +272,6 @@ public:
     return result;
   }
 
-  /// Run merge
-  void execute() override
-  {
-    std::filesystem::path outputPath(_options.OutputFile);
-    std::filesystem::path mergedPath(_options.MergedOutput);
-
-    // Check we have data
-    if (!std::filesystem::exists(outputPath))
-    {
-      const std::string msg = "Merge failure: Impossible to find output file: " + _options.OutputFile;
-      throw std::exception(msg.c_str());
-    }
-
-    // Nothing to merge = Copy and quit
-    if (!std::filesystem::exists(mergedPath))
-    {
-      std::filesystem::copy(outputPath, mergedPath);
-      return;
-    }
-
-    // ---- Make merge ---------------------------------------------------------------
-    // Step 1: Parse output files and define a dictionary
-    DictCoverage dictOutput = makeDictionary(_options.OutputFile);
-    DictCoverage dictMerge  = makeDictionary(_options.MergedOutput);
-
-    // Step 2: Parse merge
-    merge(dictOutput, dictMerge);
-
-    // Step 3: Write dictionary (on empty file)
-    std::ofstream ofs(_options.MergedOutput);
-
-    FileCoverageV2::writeHeader(ofs);
-
   void saveResultToStream(std::ostream& outputStream) override
   {
     FileCoverageV2::writeHeader(outputStream);
@@ -312,7 +281,7 @@ public:
       const auto& dirName = directories.first;
       if (!dirName.empty())
       {
-        FileCoverageV2::openDirectory(ofs, directories.second._isSolutionFolder, dirName);
+        FileCoverageV2::openDirectory(outputStream, directories.second._isSolutionFolder, dirName);
       }
       for (const auto& cover : directories.second._coverages)
       {

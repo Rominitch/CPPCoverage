@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <memory>
 
-
 struct CoverageResult
 {
   virtual ~CoverageResult() = default;
@@ -16,12 +15,15 @@ struct CoverageResult
   virtual size_t nbLineCovered(const std::filesystem::path& path) const = 0;
 
   virtual size_t nbFolders() const = 0;
+};
 
 class IMergeRunner
 {
 public:
   virtual void merge(const std::string& mergedFile, const std::string& outputFile) = 0;
   virtual void saveResultToStream(std::ostream& outputStream) = 0;
+  
+  /// Read dict on disk
   virtual std::unique_ptr<CoverageResult> read( const std::filesystem::path& ) const = 0;
 };
 
@@ -35,12 +37,8 @@ public:
   // Avoid copy constructor
   MergeRunner(const MergeRunner&) = delete;
 
-  /// Read dict on disk
-  std::unique_ptr<CoverageResult> read( const std::filesystem::path& ) const;
-
   // Allow to build good merge runner
   static std::unique_ptr<MergeRunner> createMergeRunner(const RuntimeOptions& opts);
-
   void execute();
   
 private:

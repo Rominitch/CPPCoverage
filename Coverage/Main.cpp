@@ -342,7 +342,6 @@ void ParseCommandLine(int argc, const char** argv)
     std::cout << "Arguments: " << opts.ExecutableArguments << std::endl;
   }
 #endif
-  return -1;
 }
 
 class UTF8CodePage {
@@ -451,7 +450,7 @@ int main(int argc, const char** argv)
     {
       if (!std::filesystem::exists(localOutputFile))
       {
-        if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Warning))
+        if (opts.isAtLeastLevel(VerboseLevel::Warning))
         {
           std::cerr << "Warning: -consolidate requested but the master coverage file is missing: "
             << localOutputFile << std::endl;
@@ -463,14 +462,14 @@ int main(int argc, const char** argv)
         {
           if (!std::filesystem::exists(auxFile))
           {
-            if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Warning))
+            if (opts.isAtLeastLevel(VerboseLevel::Warning))
             {
               std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
             }
             continue;
           }
 
-          if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Info))
+          if (opts.isAtLeastLevel(VerboseLevel::Info))
           {
             std::cout << "Consolidating auxiliary coverage into "
               << localOutputFile << ": " << auxFile << std::endl;
@@ -486,7 +485,7 @@ int main(int argc, const char** argv)
 
           std::error_code ec;
           std::filesystem::remove(auxFile, ec);
-          if (ec && RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Warning))
+          if (ec && opts.isAtLeastLevel(VerboseLevel::Warning))
           {
             std::cerr << "Warning: failed to remove consolidated aux file "
               << auxFile << ": " << ec.message() << std::endl;
@@ -501,7 +500,7 @@ int main(int argc, const char** argv)
   }
   catch (const std::exception& e)
   {
-    if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Error))
+    if (opts.isAtLeastLevel(VerboseLevel::Error))
     {
       std::cerr << "Error while consolidating auxiliary coverage: " << e.what() << std::endl;
     }
@@ -531,7 +530,7 @@ int main(int argc, const char** argv)
       {
         if (!std::filesystem::exists(auxFile))
         {
-          if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Warning))
+          if (opts.isAtLeastLevel(VerboseLevel::Warning))
           {
             std::cerr << "Warning: expected auxiliary coverage file missing: " << auxFile << std::endl;
           }
@@ -540,7 +539,7 @@ int main(int argc, const char** argv)
 
         RuntimeOptions auxOpts = opts;
         auxOpts.OutputFile = auxFile;
-        if (RuntimeOptions::Instance().isAtLeastLevel(VerboseLevel::Info))
+        if (auxOpts.isAtLeastLevel(VerboseLevel::Info))
         {
           std::cout << "Merging auxiliary coverage: " << auxFile << std::endl;
         }
