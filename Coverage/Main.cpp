@@ -476,11 +476,13 @@ int main(int argc, const char** argv)
               << localOutputFile << ": " << auxFile << std::endl;
           }
 
-          RuntimeOptions auxOpts = opts;
-          auxOpts.OutputFile   = auxFile;
-          auxOpts.MergedOutput = localOutputFile;
-          auto auxMerge = MergeRunner::createMergeRunner(auxOpts);
-          auxMerge->execute();
+          {
+            RuntimeOptions auxOpts = opts;
+            auxOpts.OutputFile = auxFile;
+            auxOpts.MergedOutput = localOutputFile;
+            MergeRunner auxMerge(auxOpts);
+            auxMerge.execute();
+          }
 
           std::error_code ec;
           std::filesystem::remove(auxFile, ec);
@@ -515,8 +517,11 @@ int main(int argc, const char** argv)
       {
         std::cout << "Merge into " << opts.MergedOutput << std::endl;
       }
-      auto merge = MergeRunner::createMergeRunner(opts);
-      merge->execute();
+
+      {
+        MergeRunner merge(opts);
+        merge.execute();
+      }
 
       // Also merge coverage collected by any sibling-bitness helper
       // processes. When -consolidate was used, auxiliaryOutputs is empty
@@ -539,8 +544,8 @@ int main(int argc, const char** argv)
         {
           std::cout << "Merging auxiliary coverage: " << auxFile << std::endl;
         }
-        auto auxMerge = MergeRunner::createMergeRunner(auxOpts);
-        auxMerge->execute();
+        MergeRunner auxMerge(auxOpts);
+        auxMerge.execute();
       }
     }
   }
