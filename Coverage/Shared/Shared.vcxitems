@@ -48,6 +48,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)..\CoverageRunner.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\Disassembler\ReachabilityAnalysis.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\Disassembler\X86DisassemblerDecoder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\FileCoverageV2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\FileInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\FileSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\Main.cpp" />
